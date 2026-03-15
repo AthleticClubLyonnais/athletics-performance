@@ -1,0 +1,84 @@
+version: '3'
+
+tasks:
+  init-git:
+    desc: Initialize git repository
+    cmds:
+      - |
+        if [ ! -f .git/config ]; then
+          git init --initial-branch=main
+          git remote add origin git@gitlab.com:biomerieux-sa/frds/lab/athletics_performance.git
+          git add .
+          git commit -m "Initial commit"
+          git push -u origin main
+        else
+          echo "Already pushed to Gitlab"
+        fi
+
+  sync:
+    desc: Install the package
+    cmds:
+      - |
+        uv sync --no-dev
+
+  sync-dev:
+    desc: Install development dependencies
+    cmds:
+      - |
+        uv sync --group dev
+  test:
+    deps : [sync-dev]
+    desc: Run tests
+    cmds:
+      - |
+        uv run pytest --cov=. --cov-report term
+
+  publish:
+    desc: Build and publish the package
+    deps: [sync-dev]
+    cmds:
+      - |
+        uv run flit publish
+
+  doc:
+    desc: Build documentation
+    cmds:
+      - |
+        uv sync --group doc
+        uv run sphinx-apidoc -o docs/ .; cd docs/;  make html; cd ..
+
+
+  serve-doc:
+    desc: Serve documentation locally
+    deps: [doc]
+    cmds:
+      - |
+        echo "Finding available port..."
+        uv run --directory docs/ sphinx-autobuild -b html . _build/html --port $(python3 -c "import socket; s=socket.socket(); s.bind(('',0)); print(s.getsockname()[1]); s.close()")
+    
+  clean-doc:
+    desc: Clean documentation build files
+    cmds:
+      - |
+        rm -rf docs/_build
+        
+  pre-commit-install:
+    desc: Install pre-commit hooks
+    deps: [sync-dev]
+    cmds:
+      - |
+        uv run pre-commit install
+
+  pre-commit:
+    desc: Run pre-commit hooks
+    deps: [sync-dev]
+    cmds:
+      - |
+        uv run pre-commit run --all-files
+
+  jupyter:
+    desc: Start Jupyter Notebook
+    deps: [sync-dev]
+    cmds:
+      - |
+        uv run jupyter notebook
