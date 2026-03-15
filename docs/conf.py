@@ -48,7 +48,7 @@ def setup(app):
 # -- Project information -----------------------------------------------------
 
 project = "athletics_performance"
-copyright = "bioMérieux 2026"
+copyright = "ACL 2026"
 author = "Guillaume PERRIN - Athletic Club du Lyonnais"
 
 # The full version, including alpha/beta/rc tags

@@ -17,7 +17,7 @@ This project uses `uv` as a virtual environment and dependency manager.
   ```bash
   task sync-dev
   ```
-  - Install pre-commit hooks. This runs code before commiting to make sure your code meets the bioMérieux Data Science minimal coding standards. It does linting, formatting, cleaning of the jupyter notebook output cells.
+  - Install pre-commit hooks. This runs code before commiting to make sure your code meets the project coding standards. It does linting, formatting, cleaning of the jupyter notebook output cells.
   ```bash
   task pre-commit-install
   ```
