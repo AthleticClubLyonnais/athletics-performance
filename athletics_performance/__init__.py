@@ -7,7 +7,7 @@ from pathlib import Path
 from .athlete import Athlete
 from .club import Club, DEPARTMENT_TO_LIGUE
 from .club_membership import ClubMembership
-from .event import Event
+from .event import Event, EVENT_CATALOG
 from .performance import Performance
 from .scoring_tables import ScoringTables
 
@@ -19,4 +19,4 @@ with open(
 ) as version_file:
     __version__ = version_file.read().strip()
 
-__all__ = ["Athlete", "Club", "ClubMembership", "Event", "Performance", "ScoringTables", "DEPARTMENT_TO_LIGUE"]
+__all__ = ["Athlete", "Club", "ClubMembership", "Event", "EVENT_CATALOG", "Performance", "ScoringTables", "DEPARTMENT_TO_LIGUE"]
