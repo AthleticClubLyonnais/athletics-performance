@@ -609,14 +609,20 @@ class ScoringTableResolver:
         Parameters
         ----------
         category : str
-            Category code (e.g., "CA", "JU", "SE", "BE", "MI").
+            Category code with optional sex suffix (e.g., "CA", "CAM", "JU", "SEM", "BE", "BEF", "MI", "MIM").
+            Sex suffixes ("M" or "W") are stripped automatically.
 
         Returns
         -------
         ScoringTable or None
             The applicable scoring table, or None if not available.
         """
-        return cls._tables.get(category)
+        # Strip sex suffix if present (last char is M or W)
+        if category and category[-1] in ("M", "W"):
+            base_category = category[:-1]
+        else:
+            base_category = category
+        return cls._tables.get(base_category)
 
     @classmethod
     def _init_default(cls) -> None:
