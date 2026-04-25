@@ -610,15 +610,15 @@ class ScoringTableResolver:
         ----------
         category : str
             Category code with optional sex suffix (e.g., "CA", "CAM", "JU", "SEM", "BE", "BEF", "MI", "MIM").
-            Sex suffixes ("M" or "W") are stripped automatically.
+            Sex suffixes ("M" for male, "F" for female) are stripped automatically.
 
         Returns
         -------
         ScoringTable or None
             The applicable scoring table, or None if not available.
         """
-        # Strip sex suffix if present (last char is M or W)
-        if category and category[-1] in ("M", "W"):
+        # Strip sex suffix if present (last char is M or F)
+        if category and category[-1] in ("M", "F"):
             base_category = category[:-1]
         else:
             base_category = category
