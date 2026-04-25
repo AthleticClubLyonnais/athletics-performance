@@ -7,6 +7,7 @@ backed by the official World Athletics Scoring Tables 2025 PDF (846 pages, 28 se
 The PDF is parsed once into a local parquet file via build_from_pdf(), then used
 for all lookups at runtime.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -15,19 +16,52 @@ from typing import Optional
 import pandas as pd
 
 _SECTIONS = [
-    ("M", 9, 38), ("M", 39, 68), ("M", 69, 98), ("M", 99, 128),
-    ("M", 129, 158), ("M", 159, 188), ("M", 189, 218), ("M", 219, 248),
-    ("M", 249, 278), ("M", 279, 308), ("M", 309, 337), ("M", 338, 367),
-    ("M", 368, 397), ("M", 398, 427),
-    ("W", 428, 457), ("W", 458, 487), ("W", 488, 517), ("W", 518, 547),
-    ("W", 548, 577), ("W", 578, 607), ("W", 608, 637), ("W", 638, 667),
-    ("W", 668, 697), ("W", 698, 727), ("W", 728, 757), ("W", 758, 787),
-    ("W", 788, 817), ("W", 818, 845),
+    ("M", 9, 38),
+    ("M", 39, 68),
+    ("M", 69, 98),
+    ("M", 99, 128),
+    ("M", 129, 158),
+    ("M", 159, 188),
+    ("M", 189, 218),
+    ("M", 219, 248),
+    ("M", 249, 278),
+    ("M", 279, 308),
+    ("M", 309, 337),
+    ("M", 338, 367),
+    ("M", 368, 397),
+    ("M", 398, 427),
+    ("W", 428, 457),
+    ("W", 458, 487),
+    ("W", 488, 517),
+    ("W", 518, 547),
+    ("W", 548, 577),
+    ("W", 578, 607),
+    ("W", 608, 637),
+    ("W", 638, 667),
+    ("W", 668, 697),
+    ("W", 698, 727),
+    ("W", 728, 757),
+    ("W", 758, 787),
+    ("W", 788, 817),
+    ("W", 818, 845),
 ]
 
 _DISTANCE_PREFIXES = frozenset(
-    ["HJ", "PV", "LJ", "TJ", "SP", "DT", "HT", "JT", "WT",
-     "Dec", "Hept", "Pent", "Pentat"]
+    [
+        "HJ",
+        "PV",
+        "LJ",
+        "TJ",
+        "SP",
+        "DT",
+        "HT",
+        "JT",
+        "WT",
+        "Dec",
+        "Hept",
+        "Pent",
+        "Pentat",
+    ]
 )
 
 
@@ -51,8 +85,12 @@ class ScoringTables:
         Default PDF file path.
     """
 
-    DATA_PATH = Path(__file__).parent / "data" / "world_athletics_scoring_tables_2025.parquet"
-    PDF_PATH = Path(__file__).parent / "data" / "World_Athletics_Scoring_Tables_2025.pdf"
+    DATA_PATH = (
+        Path(__file__).parent / "data" / "world_athletics_scoring_tables_2025.parquet"
+    )
+    PDF_PATH = (
+        Path(__file__).parent / "data" / "World_Athletics_Scoring_Tables_2025.pdf"
+    )
 
     def __init__(self, df: pd.DataFrame) -> None:
         self._df = df
@@ -87,7 +125,9 @@ class ScoringTables:
             raise ValueError("No scoring table data extracted from PDF")
 
         df = pd.DataFrame(records, columns=["sex", "event", "points", "performance"])
-        df.drop_duplicates(subset=["sex", "event", "points"], keep="first", inplace=True)
+        df.drop_duplicates(
+            subset=["sex", "event", "points"], keep="first", inplace=True
+        )
         df["points"] = df["points"].astype("int16")
         df["performance"] = df["performance"].astype("float32")
 
@@ -269,7 +309,7 @@ class ScoringTables:
             return []
 
         records = []
-        for line in lines[header_line_idx + 1:]:
+        for line in lines[header_line_idx + 1 :]:
             try:
                 row_data = cls._assign_to_columns(line, columns)
                 points_str = row_data.get("Points")
@@ -341,7 +381,9 @@ class ScoringTables:
         return lines
 
     @staticmethod
-    def _parse_header_columns(header_words: list[dict], gap_threshold: float = 5.0) -> list[dict]:
+    def _parse_header_columns(
+        header_words: list[dict], gap_threshold: float = 5.0
+    ) -> list[dict]:
         """
         Parse column headers from header line, merging compound event names.
 
@@ -365,7 +407,9 @@ class ScoringTables:
         i = 0
 
         while i < len(header_words):
-            col_name = header_words[i]["text"].rstrip(".")  # Remove trailing dots (e.g., "Hept." → "Hept")
+            col_name = header_words[i]["text"].rstrip(
+                "."
+            )  # Remove trailing dots (e.g., "Hept." → "Hept")
             col_x0 = header_words[i]["x0"]
             col_x1 = header_words[i]["x1"]
 
@@ -382,8 +426,12 @@ class ScoringTables:
 
             col_mid = (col_x0 + col_x1) / 2.0
             # Normalize event name: replace dots with nothing, commas with nothing
-            col_name = col_name.replace(",", "")  # Remove commas from event names like "10,000m"
-            columns.append({"name": col_name, "x_mid": col_mid, "x0": col_x0, "x1": col_x1})
+            col_name = col_name.replace(
+                ",", ""
+            )  # Remove commas from event names like "10,000m"
+            columns.append(
+                {"name": col_name, "x_mid": col_mid, "x0": col_x0, "x1": col_x1}
+            )
             i = j
 
         return columns

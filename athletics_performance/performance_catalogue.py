@@ -23,6 +23,7 @@ Examples
 >>> cat.record().athlete_id
 'A2'
 """
+
 from __future__ import annotations
 
 import statistics as _statistics
@@ -204,7 +205,9 @@ class PerformanceCatalogue:
         """Return the best performance per event_id — one record per event."""
         best_per_event: dict[str, Performance] = {}
         for p in self._performances:
-            if p.event_id not in best_per_event or _is_better(p, best_per_event[p.event_id]):
+            if p.event_id not in best_per_event or _is_better(
+                p, best_per_event[p.event_id]
+            ):
                 best_per_event[p.event_id] = p
         return PerformanceCatalogue(best_per_event.values())
 

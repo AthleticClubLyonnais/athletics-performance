@@ -1,10 +1,11 @@
 """
 Club model for athletics results.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Optional, Tuple
+from typing import Tuple
 
 # Mapping 3-digit department code → (ligue_code, ligue_name)
 # Keys are the first 3 characters of a 6-character FFA club_id.
