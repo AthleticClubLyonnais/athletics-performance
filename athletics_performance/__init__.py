@@ -11,6 +11,8 @@ from .event import Event, EVENT_CATALOG
 from .performance import Performance
 from .performance_catalogue import PerformanceCatalogue
 from .scoring_tables import (
+    BEYouthScoringTable,
+    MIYouthScoringTable,
     ScoringTable,
     ScoringTableResolver,
     ScoringTables,
@@ -32,6 +34,8 @@ __all__ = [
     "Event",
     "Performance",
     "PerformanceCatalogue",
+    "BEYouthScoringTable",
+    "MIYouthScoringTable",
     "ScoringTable",
     "ScoringTables",
     "ScoringTableResolver",
