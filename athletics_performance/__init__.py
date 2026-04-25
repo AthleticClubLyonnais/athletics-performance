@@ -28,5 +28,6 @@ __all__ = [
     "Performance",
     "PerformanceCatalogue",
     "ScoringTables",
+    "EVENT_CATALOG",
     "DEPARTMENT_TO_LIGUE",
 ]
