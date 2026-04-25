@@ -7,8 +7,6 @@ import pytest
 from datetime import date
 
 from athletics_performance import (
-    Athlete,
-    Event,
     EVENT_CATALOG,
     Performance,
     ScoringTables,

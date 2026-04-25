@@ -1,4 +1,5 @@
 """Tests for PerformanceCatalogue."""
+
 from datetime import date
 
 import pytest
@@ -9,6 +10,7 @@ from athletics_performance import Performance, PerformanceCatalogue
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
+
 
 def _perf(
     perf_id: str,
@@ -37,28 +39,33 @@ def _perf(
 @pytest.fixture()
 def time_catalogue() -> PerformanceCatalogue:
     """Five 100m performances across two athletes."""
-    return PerformanceCatalogue([
-        _perf("P1", 12.34, athlete_id="A1"),
-        _perf("P2", 11.90, athlete_id="A2"),
-        _perf("P3", 12.10, athlete_id="A1"),
-        _perf("P4", 12.50, athlete_id="A2"),
-        _perf("P5", 11.80, athlete_id="A2"),
-    ])
+    return PerformanceCatalogue(
+        [
+            _perf("P1", 12.34, athlete_id="A1"),
+            _perf("P2", 11.90, athlete_id="A2"),
+            _perf("P3", 12.10, athlete_id="A1"),
+            _perf("P4", 12.50, athlete_id="A2"),
+            _perf("P5", 11.80, athlete_id="A2"),
+        ]
+    )
 
 
 @pytest.fixture()
 def distance_catalogue() -> PerformanceCatalogue:
     """Three long-jump performances."""
-    return PerformanceCatalogue([
-        _perf("D1", 6.50, measurement="distance", event_id="LJ"),
-        _perf("D2", 7.10, measurement="distance", event_id="LJ"),
-        _perf("D3", 6.80, measurement="distance", event_id="LJ"),
-    ])
+    return PerformanceCatalogue(
+        [
+            _perf("D1", 6.50, measurement="distance", event_id="LJ"),
+            _perf("D2", 7.10, measurement="distance", event_id="LJ"),
+            _perf("D3", 6.80, measurement="distance", event_id="LJ"),
+        ]
+    )
 
 
 # ---------------------------------------------------------------------------
 # Collection protocol
 # ---------------------------------------------------------------------------
+
 
 class TestCollectionProtocol:
     def test_len_empty(self):
@@ -103,6 +110,7 @@ class TestCollectionProtocol:
 # Filtering
 # ---------------------------------------------------------------------------
 
+
 class TestFilter:
     def test_filter_athlete_id(self, time_catalogue):
         result = time_catalogue.filter(athlete_id="A1")
@@ -110,45 +118,55 @@ class TestFilter:
         assert all(p.athlete_id == "A1" for p in result)
 
     def test_filter_event_id(self):
-        cat = PerformanceCatalogue([
-            _perf("P1", 12.0, event_id="100m"),
-            _perf("P2", 6.5, measurement="distance", event_id="LJ"),
-        ])
+        cat = PerformanceCatalogue(
+            [
+                _perf("P1", 12.0, event_id="100m"),
+                _perf("P2", 6.5, measurement="distance", event_id="LJ"),
+            ]
+        )
         assert len(cat.filter(event_id="100m")) == 1
         assert len(cat.filter(event_id="LJ")) == 1
 
     def test_filter_date_range(self):
-        cat = PerformanceCatalogue([
-            _perf("P1", 12.0, perf_date=date(2026, 1, 10)),
-            _perf("P2", 11.9, perf_date=date(2026, 3, 15)),
-            _perf("P3", 12.1, perf_date=date(2026, 5, 20)),
-        ])
+        cat = PerformanceCatalogue(
+            [
+                _perf("P1", 12.0, perf_date=date(2026, 1, 10)),
+                _perf("P2", 11.9, perf_date=date(2026, 3, 15)),
+                _perf("P3", 12.1, perf_date=date(2026, 5, 20)),
+            ]
+        )
         result = cat.filter(date_from=date(2026, 3, 1), date_to=date(2026, 4, 30))
         assert len(result) == 1
         assert result.to_list()[0].perf_id == "P2"
 
     def test_filter_yos(self):
-        cat = PerformanceCatalogue([
-            _perf("P1", 12.0, perf_date=date(2025, 5, 1)),   # yos=2025
-            _perf("P2", 11.9, perf_date=date(2025, 10, 1)),  # yos=2026
-            _perf("P3", 12.1, perf_date=date(2026, 3, 1)),   # yos=2026
-        ])
+        cat = PerformanceCatalogue(
+            [
+                _perf("P1", 12.0, perf_date=date(2025, 5, 1)),  # yos=2025
+                _perf("P2", 11.9, perf_date=date(2025, 10, 1)),  # yos=2026
+                _perf("P3", 12.1, perf_date=date(2026, 3, 1)),  # yos=2026
+            ]
+        )
         assert len(cat.filter(yos=2025)) == 1
         assert len(cat.filter(yos=2026)) == 2
 
     def test_filter_category(self):
-        cat = PerformanceCatalogue([
-            _perf("P1", 12.0, category="SEF"),
-            _perf("P2", 11.9, category="ESF"),
-            _perf("P3", 12.1, category="SEF"),
-        ])
+        cat = PerformanceCatalogue(
+            [
+                _perf("P1", 12.0, category="SEF"),
+                _perf("P2", 11.9, category="ESF"),
+                _perf("P3", 12.1, category="SEF"),
+            ]
+        )
         assert len(cat.filter(category="SEF")) == 2
 
     def test_filter_club_id(self):
-        cat = PerformanceCatalogue([
-            _perf("P1", 12.0, club_id="069001"),
-            _perf("P2", 11.9, club_id="069002"),
-        ])
+        cat = PerformanceCatalogue(
+            [
+                _perf("P1", 12.0, club_id="069001"),
+                _perf("P2", 11.9, club_id="069002"),
+            ]
+        )
         assert len(cat.filter(club_id="069001")) == 1
 
     def test_filter_combined(self, time_catalogue):
@@ -166,6 +184,7 @@ class TestFilter:
 # ---------------------------------------------------------------------------
 # Records and personal bests
 # ---------------------------------------------------------------------------
+
 
 class TestRecord:
     def test_record_time(self, time_catalogue):
@@ -205,22 +224,30 @@ class TestRecord:
         assert values["A2"] == 11.80
 
     def test_personal_bests_multi_event(self):
-        cat = PerformanceCatalogue([
-            _perf("P1", 12.0, athlete_id="A1", event_id="100m"),
-            _perf("P2", 11.5, athlete_id="A1", event_id="100m"),
-            _perf("P3", 6.0, measurement="distance", athlete_id="A1", event_id="LJ"),
-            _perf("P4", 6.5, measurement="distance", athlete_id="A1", event_id="LJ"),
-        ])
+        cat = PerformanceCatalogue(
+            [
+                _perf("P1", 12.0, athlete_id="A1", event_id="100m"),
+                _perf("P2", 11.5, athlete_id="A1", event_id="100m"),
+                _perf(
+                    "P3", 6.0, measurement="distance", athlete_id="A1", event_id="LJ"
+                ),
+                _perf(
+                    "P4", 6.5, measurement="distance", athlete_id="A1", event_id="LJ"
+                ),
+            ]
+        )
         pb = pb = cat.personal_bests()
         assert len(pb) == 2  # one per (A1, 100m) and (A1, LJ)
 
     def test_records_per_event(self):
-        cat = PerformanceCatalogue([
-            _perf("P1", 12.0, event_id="100m"),
-            _perf("P2", 11.5, event_id="100m"),
-            _perf("P3", 6.0, measurement="distance", event_id="LJ"),
-            _perf("P4", 6.8, measurement="distance", event_id="LJ"),
-        ])
+        cat = PerformanceCatalogue(
+            [
+                _perf("P1", 12.0, event_id="100m"),
+                _perf("P2", 11.5, event_id="100m"),
+                _perf("P3", 6.0, measurement="distance", event_id="LJ"),
+                _perf("P4", 6.8, measurement="distance", event_id="LJ"),
+            ]
+        )
         recs = cat.records()
         assert len(recs) == 2
         rec_map = {p.event_id: p for p in recs}
@@ -231,6 +258,7 @@ class TestRecord:
 # ---------------------------------------------------------------------------
 # Ranking and sorting
 # ---------------------------------------------------------------------------
+
 
 class TestRankingAndSorting:
     def test_sorted_time_ascending(self, time_catalogue):
@@ -270,6 +298,7 @@ class TestRankingAndSorting:
 # Grouping
 # ---------------------------------------------------------------------------
 
+
 class TestGroupBy:
     def test_group_by_athlete(self, time_catalogue):
         groups = time_catalogue.group_by("athlete_id")
@@ -278,21 +307,25 @@ class TestGroupBy:
         assert len(groups["A2"]) == 3
 
     def test_group_by_event(self):
-        cat = PerformanceCatalogue([
-            _perf("P1", 12.0, event_id="100m"),
-            _perf("P2", 11.5, event_id="100m"),
-            _perf("P3", 6.0, measurement="distance", event_id="LJ"),
-        ])
+        cat = PerformanceCatalogue(
+            [
+                _perf("P1", 12.0, event_id="100m"),
+                _perf("P2", 11.5, event_id="100m"),
+                _perf("P3", 6.0, measurement="distance", event_id="LJ"),
+            ]
+        )
         groups = cat.group_by("event_id")
         assert len(groups["100m"]) == 2
         assert len(groups["LJ"]) == 1
 
     def test_group_by_yos(self):
-        cat = PerformanceCatalogue([
-            _perf("P1", 12.0, perf_date=date(2025, 3, 1)),   # yos=2025
-            _perf("P2", 11.9, perf_date=date(2025, 10, 1)),  # yos=2026
-            _perf("P3", 12.1, perf_date=date(2026, 4, 1)),   # yos=2026
-        ])
+        cat = PerformanceCatalogue(
+            [
+                _perf("P1", 12.0, perf_date=date(2025, 3, 1)),  # yos=2025
+                _perf("P2", 11.9, perf_date=date(2025, 10, 1)),  # yos=2026
+                _perf("P3", 12.1, perf_date=date(2026, 4, 1)),  # yos=2026
+            ]
+        )
         groups = cat.group_by("yos")
         assert len(groups["2025"]) == 1
         assert len(groups["2026"]) == 2
@@ -301,6 +334,7 @@ class TestGroupBy:
 # ---------------------------------------------------------------------------
 # Statistics
 # ---------------------------------------------------------------------------
+
 
 class TestStats:
     def test_stats_empty(self):

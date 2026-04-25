@@ -47,6 +47,7 @@ Examples
 ... )
 Performance(perf_id='P1', athlete_id='2275784', event_id='100m', date=datetime.date(2026, 3, 15), result_value=12.34, unit='s')
 """
+
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -157,7 +158,9 @@ class Performance:
 
         # --- result ---
         if isinstance(result_value, str):
-            self.result_value: float = self._parse_result(result_value, self.measurement)
+            self.result_value: float = self._parse_result(
+                result_value, self.measurement
+            )
         else:
             self.result_value = float(result_value)
 

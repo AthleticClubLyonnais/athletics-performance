@@ -20,4 +20,13 @@ with open(
 ) as version_file:
     __version__ = version_file.read().strip()
 
-__all__ = ["Athlete", "Club", "ClubMembership", "Event", "Performance", "PerformanceCatalogue", "ScoringTables", "DEPARTMENT_TO_LIGUE"]
+__all__ = [
+    "Athlete",
+    "Club",
+    "ClubMembership",
+    "Event",
+    "Performance",
+    "PerformanceCatalogue",
+    "ScoringTables",
+    "DEPARTMENT_TO_LIGUE",
+]

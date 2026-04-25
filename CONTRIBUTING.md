@@ -2,7 +2,7 @@
 
 This project uses `uv` as a virtual environment and dependency manager.
 
-## TL;DR: 
+## TL;DR:
 
 - Open an issue
 - Create a new branch for this issue
@@ -11,7 +11,7 @@ This project uses `uv` as a virtual environment and dependency manager.
   ```bash
   # as a reminder (example)
   module purge
-  module load python/3.13.3 
+  module load python/3.13.3
   ```
 - Install the dependencies (dev)
   ```bash
@@ -30,12 +30,12 @@ This project uses `uv` as a virtual environment and dependency manager.
 - Create a new tag on your branch formed like "X.Y.Z-rcN" where X.Y.Z is the version and N the number of the release candidate
 *Example: 1.2.3-rc1*
 - Test out your release candidate in real conditions
-- If everything works as expected, validate the PR and create a release tag  
+- If everything works as expected, validate the PR and create a release tag
 *Example: 1.2.3*
 
 ### What you don't need to do
 
-- **You don't need to modify the athletics_performance/VERSION file**  
+- **You don't need to modify the athletics_performance/VERSION file**
 *Treat it as generated project metadata and keep it aligned with the release tag rather than editing it manually.*
 
 
@@ -70,7 +70,7 @@ You can use `uv` when working on athletics_performance
 uv sync
 ```
 
-This creates a virtual environment in `.venv` and install all dependencies needed for development.  
+This creates a virtual environment in `.venv` and install all dependencies needed for development.
 Use ``uv run <command>`` to run commands in the virtual environment.
 
 See [uv documentation](https://docs.astral.sh/uv/guides/projects/#managing-dependencies) for more details.

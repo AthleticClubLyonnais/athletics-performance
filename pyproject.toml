@@ -37,4 +37,3 @@ doc = [
 
 [tool.flit.sdist]
 include = ["athletics_performance/"]
-

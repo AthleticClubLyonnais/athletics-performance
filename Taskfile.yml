@@ -55,13 +55,13 @@ tasks:
       - |
         echo "Finding available port..."
         uv run --directory docs/ sphinx-autobuild -b html . _build/html --port $(python3 -c "import socket; s=socket.socket(); s.bind(('',0)); print(s.getsockname()[1]); s.close()")
-    
+
   clean-doc:
     desc: Clean documentation build files
     cmds:
       - |
         rm -rf docs/_build
-        
+
   pre-commit-install:
     desc: Install pre-commit hooks
     deps: [sync-dev]

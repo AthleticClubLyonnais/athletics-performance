@@ -1,6 +1,7 @@
 """
 ClubMembership model – tracks an athlete's club history.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
