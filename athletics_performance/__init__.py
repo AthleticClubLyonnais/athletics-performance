@@ -10,7 +10,12 @@ from .club_membership import ClubMembership
 from .event import Event, EVENT_CATALOG
 from .performance import Performance
 from .performance_catalogue import PerformanceCatalogue
-from .scoring_tables import ScoringTables
+from .scoring_tables import (
+    ScoringTable,
+    ScoringTableResolver,
+    ScoringTables,
+    WorldAthletics2025ScoringTable,
+)
 
 __description__ = "Athletics performance scoring and conversion tools"
 
@@ -27,7 +32,10 @@ __all__ = [
     "Event",
     "Performance",
     "PerformanceCatalogue",
+    "ScoringTable",
     "ScoringTables",
+    "ScoringTableResolver",
+    "WorldAthletics2025ScoringTable",
     "EVENT_CATALOG",
     "DEPARTMENT_TO_LIGUE",
 ]

@@ -1,15 +1,17 @@
 """
-ScoringTables: World Athletics scoring tables from official PDF.
+Scoring tables: abstract base and category-specific implementations.
 
-This module provides a table-based lookup system for World Athletics points scores,
-backed by the official World Athletics Scoring Tables 2025 PDF (846 pages, 28 sections).
+This module provides a hierarchical system for different athletics scoring tables,
+each applicable to specific athlete categories (age groups).
 
-The PDF is parsed once into a local parquet file via build_from_pdf(), then used
-for all lookups at runtime.
+- `ScoringTable`: Abstract base class for all scoring tables.
+- `WorldAthletics2025ScoringTable`: Official World Athletics 2025 tables (senior categories).
+- `ScoringTableResolver`: Factory to select the appropriate table for an athlete's category.
 """
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional
 
@@ -65,25 +67,122 @@ _DISTANCE_PREFIXES = frozenset(
 )
 
 
-class ScoringTables:
+class ScoringTable(ABC):
     """
-    World Athletics points scoring tables (2025 edition).
+    Abstract base class for athletics scoring tables.
 
-    Use build_from_pdf() once to parse the PDF into a local parquet file,
-    then load() to create a ScoringTables instance for point lookups.
+    Each subclass represents a scoring system applicable to specific athlete
+    categories (age groups, gender).
+
+    Subclasses must implement:
+    - score(): Return points for a performance
+    - performance_for_points(): Return required performance for a points level
+    - available_events(): List available events
+    """
+
+    @property
+    @abstractmethod
+    def applicable_categories(self) -> frozenset[str]:
+        """
+        Categories (age groups) this scoring table applies to.
+
+        Returns
+        -------
+        frozenset[str]
+            Set of category codes (e.g., {"CA", "JU", "ES", "SE", "M", "M0", "M1", ...}).
+        """
+        pass
+
+    @abstractmethod
+    def score(self, sex: str, event_id: str, performance: float) -> int:
+        """
+        Return points for a given performance.
+
+        Parameters
+        ----------
+        sex : {"M", "W"}
+            Athlete sex.
+        event_id : str
+            Event identifier (e.g., "100m", "LJ").
+        performance : float
+            Performance value in standard units (seconds or metres).
+
+        Returns
+        -------
+        int
+            Points awarded. Returns 0 if performance does not qualify.
+        """
+        pass
+
+    @abstractmethod
+    def performance_for_points(self, sex: str, event_id: str, points: int) -> float:
+        """
+        Return the minimum performance required for a given points level.
+
+        Parameters
+        ----------
+        sex : {"M", "W"}
+            Athlete sex.
+        event_id : str
+            Event identifier.
+        points : int
+            Points level.
+
+        Returns
+        -------
+        float
+            Minimum performance (seconds or metres).
+
+        Raises
+        ------
+        ValueError
+            If no data exists for the given points level.
+        """
+        pass
+
+    @abstractmethod
+    def available_events(self, sex: str | None = None) -> list[str]:
+        """
+        List all available events.
+
+        Parameters
+        ----------
+        sex : {"M", "W"}, optional
+            Filter by sex. If None, return all.
+
+        Returns
+        -------
+        list[str]
+            Sorted list of event identifiers.
+        """
+        pass
+
+    @staticmethod
+    def _is_time_event(event_id: str) -> bool:
+        """Determine if an event is time-based (lower is better)."""
+        for prefix in _DISTANCE_PREFIXES:
+            if event_id.startswith(prefix):
+                return False
+        return True
+
+
+class WorldAthletics2025ScoringTable(ScoringTable):
+    """
+    Official World Athletics 2025 scoring tables.
+
+    Applicable to senior categories: CA (16–17), JU (18–19), ES (20–22),
+    SE (23–34), and M (35+, broken down into 5-year brackets: M0, M1, ..., M9).
 
     Parameters
     ----------
     df : pd.DataFrame
-        Loaded scoring table with columns: sex, event, points, performance.
-
-    Attributes
-    ----------
-    DATA_PATH : Path
-        Default parquet file path.
-    PDF_PATH : Path
-        Default PDF file path.
+        Loaded table with columns: sex, event, points, performance.
     """
+
+    # Senior categories for which WA tables apply
+    _APPLICABLE = frozenset(
+        ["CA", "JU", "ES", "SE", "M", "M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9"]
+    )
 
     DATA_PATH = (
         Path(__file__).parent / "data" / "world_athletics_scoring_tables_2025.parquet"
@@ -94,6 +193,11 @@ class ScoringTables:
 
     def __init__(self, df: pd.DataFrame) -> None:
         self._df = df
+
+    @property
+    def applicable_categories(self) -> frozenset[str]:
+        """World Athletics tables apply to all senior categories."""
+        return self._APPLICABLE
 
     @classmethod
     def build_from_pdf(cls, pdf_path: Optional[Path] = None) -> None:
@@ -135,24 +239,24 @@ class ScoringTables:
         df.to_parquet(cls.DATA_PATH, index=False)
 
     @classmethod
-    def load(cls) -> ScoringTables:
+    def load(cls) -> WorldAthletics2025ScoringTable:
         """
         Load scoring tables from parquet into memory.
 
         Returns
         -------
-        ScoringTables
-            Ready-to-use scoring tables instance.
+        WorldAthletics2025ScoringTable
+            Ready-to-use instance.
 
         Raises
         ------
         FileNotFoundError
-            If parquet file does not exist. Run build_from_pdf() first.
+            If parquet file does not exist.
         """
         if not cls.DATA_PATH.exists():
             raise FileNotFoundError(
                 f"Parquet file not found at {cls.DATA_PATH}. "
-                "Run ScoringTables.build_from_pdf() first."
+                "Run WorldAthletics2025ScoringTable.build_from_pdf() first."
             )
         df = pd.read_parquet(cls.DATA_PATH)
         return cls(df)
@@ -161,25 +265,22 @@ class ScoringTables:
         """
         Return World Athletics points for a given performance.
 
-        For time events (sprints, hurdles, distance running), lower is better;
-        returns the highest points level that the performance qualifies for.
-
-        For distance events (jumps, throws) and combined events, higher is better;
-        returns the highest points level the performance achieves.
+        For time events, lower is better; returns highest points the performance qualifies for.
+        For distance events, higher is better.
 
         Parameters
         ----------
         sex : {"M", "W"}
             Athlete sex.
         event_id : str
-            Event identifier (e.g. "100m", "LJ", "200m_sh").
+            Event identifier (e.g., "100m", "LJ", "200m_sh").
         performance : float
             Performance value in standard units (seconds for time, metres for distance).
 
         Returns
         -------
         int
-            World Athletics points. Returns 0 if performance is below the minimum threshold.
+            World Athletics points. Returns 0 if performance is below minimum.
         """
         mask = (self._df["sex"] == sex) & (self._df["event"] == event_id)
         event_df = self._df[mask]
@@ -220,8 +321,7 @@ class ScoringTables:
         Raises
         ------
         ValueError
-            If no performance data exists for the given points or any higher
-            points value for the (sex, event_id) combination.
+            If no performance data exists for the given points or higher.
         """
         event_df = self._df[(self._df["sex"] == sex) & (self._df["event"] == event_id)]
         mask = event_df["points"] == points
@@ -237,14 +337,14 @@ class ScoringTables:
 
         return float(row.iloc[0]["performance"])
 
-    def available_events(self, sex: str = None) -> list[str]:
+    def available_events(self, sex: str | None = None) -> list[str]:
         """
-        List all available event identifiers.
+        List all available events.
 
         Parameters
         ----------
         sex : {"M", "W"}, optional
-            Filter by athlete sex. If None, returns all events.
+            Filter by sex. If None, returns all.
 
         Returns
         -------
@@ -255,19 +355,6 @@ class ScoringTables:
         if sex is not None:
             df = df[df["sex"] == sex]
         return sorted(df["event"].unique().tolist())
-
-    @staticmethod
-    def _is_time_event(event_id: str) -> bool:
-        """
-        Determine if an event is time-based (lower is better) or not.
-
-        Jumps, throws, and combined events have a distance/points prefix.
-        All other events are time events.
-        """
-        for prefix in _DISTANCE_PREFIXES:
-            if event_id.startswith(prefix):
-                return False
-        return True
 
     @classmethod
     def _parse_page(cls, page, sex: str) -> list[tuple]:
@@ -495,3 +582,55 @@ class ScoringTables:
             return hours * 3600 + minutes * 60 + seconds
 
         return float(s)
+
+
+class ScoringTableResolver:
+    """
+    Factory to resolve and select the appropriate scoring table for an athlete category.
+
+    Currently supports:
+    - World Athletics 2025 (senior categories: CA, JU, ES, SE, M, M0–M9)
+    - Placeholders for youth categories (BE, MI)
+    """
+
+    _tables: dict[str, ScoringTable] = {}
+
+    @classmethod
+    def register(cls, table: ScoringTable) -> None:
+        """Register a scoring table."""
+        for category in table.applicable_categories:
+            cls._tables[category] = table
+
+    @classmethod
+    def get(cls, category: str) -> ScoringTable | None:
+        """
+        Get the scoring table for a given category.
+
+        Parameters
+        ----------
+        category : str
+            Category code (e.g., "CA", "JU", "SE", "BE", "MI").
+
+        Returns
+        -------
+        ScoringTable or None
+            The applicable scoring table, or None if not available.
+        """
+        return cls._tables.get(category)
+
+    @classmethod
+    def _init_default(cls) -> None:
+        """Initialize default tables (lazy-loaded on first access)."""
+        if not cls._tables:
+            cls.register(WorldAthletics2025ScoringTable.load())
+
+
+# Lazy initialization on first import
+try:
+    ScoringTableResolver._init_default()
+except FileNotFoundError:
+    pass  # Parquet not yet generated; user must call build_from_pdf()
+
+
+# Backward compatibility: ScoringTables alias for WorldAthletics2025ScoringTable
+ScoringTables = WorldAthletics2025ScoringTable
