@@ -1,5 +1,9 @@
 # athletics-performance
 
+[![PyPI version](https://badge.fury.io/py/athletics_performance.svg)](https://pypi.org/project/athletics_performance/)
+[![Test and Lint](https://github.com/AthleticClubLyonnais/athletics-performance/workflows/Test%20and%20Lint/badge.svg)](https://github.com/AthleticClubLyonnais/athletics-performance/actions)
+[![Documentation](https://github.com/AthleticClubLyonnais/athletics-performance/workflows/Build%20Documentation/badge.svg)](https://github.com/AthleticClubLyonnais/athletics-performance/actions)
+
 Python package for managing athletics results data — athletes, clubs, events, and performances — following a normalised relational model.
 
 Built for the **Athletic Club du Lyonnais (ACL)**.
@@ -77,5 +81,41 @@ performances  perf_id (PK), athlete_id (FK), event_id (FK), date, result_value,
 
 To contribute to the project, please refer to [CONTRIBUTING.md](CONTRIBUTING.md).
 
+### Quick start with development
+
+```bash
+# Clone and set up environment
+git clone https://github.com/AthleticClubLyonnais/athletics-performance.git
+cd athletics-performance
+
+# Install with uv (Python 3.13+)
+uv sync --all-groups
+uv run pre-commit install
+
+# Run tests
+uv run pytest --cov
+
+# Lint and format
+uv run ruff check .
+uv run ruff format .
+
+# Build documentation locally
+cd docs
+uv run sphinx-autobuild . _build/html
+```
+
+## Release Process
+
+1. Update version in commits/tags (tags determine publication)
+2. Create a PR with your changes
+3. Merge to `main`
+4. Create a git tag: `git tag v1.0.0` (matches `v*` pattern)
+5. Push tag: `git push origin v1.0.0`
+6. GitHub Actions automatically:
+   - Runs tests and linting
+   - Builds and publishes to [PyPI](https://pypi.org/project/athletics_performance/)
+   - Deploys documentation to GitHub Pages
+
 ## License
-[ACL](LICENSE.txt)
+
+This project is licensed under the [ACL License](LICENSE.txt).
