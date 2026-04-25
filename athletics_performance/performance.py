@@ -50,10 +50,13 @@ Performance(perf_id='P1', athlete_id='2275784', event_id='100m', date=datetime.d
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from .athlete import Athlete
 from .event import Event
+
+if TYPE_CHECKING:
+    from .scoring_tables import ScoringTables
 
 
 class Performance:
@@ -253,6 +256,24 @@ class Performance:
                 str(self.result_value), self.measurement
             )
         return self.result_value
+
+    def score_points(self, scoring_tables: ScoringTables, sex: str) -> int:
+        """
+        Return World Athletics points for this performance.
+
+        Parameters
+        ----------
+        scoring_tables : ScoringTables
+            Loaded ScoringTables instance.
+        sex : {"M", "W"}
+            Athlete sex for table lookup.
+
+        Returns
+        -------
+        int
+            World Athletics points (0 if below minimum threshold).
+        """
+        return scoring_tables.score(sex, self.event_id, self.result_value)
 
     def __repr__(self) -> str:
         return (

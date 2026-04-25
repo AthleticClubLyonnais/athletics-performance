@@ -14,7 +14,8 @@ classifiers = [
 ]
 dependencies = [
     "pandas>=3.0.1",
-    "pypdf2>=3.0.1",
+    "pdfplumber>=0.11.9",
+    "pyarrow>=18",
 ]
 
 [dependency-groups]

@@ -6,7 +6,7 @@ This project uses `uv` as a virtual environment and dependency manager.
 
 - Open an issue
 - Create a new branch for this issue
-- Create a new Merge Request for this branch
+- Create a new Pull Request for this branch
 - Make sure you're using a modern python version e.g. (check the version required in the **pyproject.toml**)
   ```bash
   # as a reminder (example)
@@ -30,27 +30,23 @@ This project uses `uv` as a virtual environment and dependency manager.
 - Create a new tag on your branch formed like "X.Y.Z-rcN" where X.Y.Z is the version and N the number of the release candidate
 *Example: 1.2.3-rc1*
 - Test out your release candidate in real conditions
-- If everything work as expected, validate the MR and create a release tag  
+- If everything works as expected, validate the PR and create a release tag  
 *Example: 1.2.3*
 
 ### What you don't need to do
 
-- **You don't need to configure Artifactory credentials**  
-*They are configured at the gitlab level. If you face issues during package publication (publish), please refer to the Group-DevOps channel on Teams.*
-
-
 - **You don't need to modify the athletics_performance/VERSION file**  
-*It is automatically set to the **TAG** of the commit when created on gitlab, and used as the reference for pyproject.toml*
+*Treat it as generated project metadata and keep it aligned with the release tag rather than editing it manually.*
 
 
 ### Continous integration (CI)
 
-The python package template is provided with a basic two steps CI pipeline:
+This repository is intended to work with a lightweight Python CI setup:
 
 * linting: code is linted using ruff
 * tests: an example function is tested. You'll need to edit the tested functions to make it suit your testing needs.
-* publish package to artifactory (for **tagged commits**)
-* Documentation generation (for **tagged commits**)
+* package publication for tagged releases
+* documentation generation for tagged releases
 
 
 #### Taskfile
@@ -78,17 +74,6 @@ This creates a virtual environment in `.venv` and install all dependencies neede
 Use ``uv run <command>`` to run commands in the virtual environment.
 
 See [uv documentation](https://docs.astral.sh/uv/guides/projects/#managing-dependencies) for more details.
-
-## Pypi server in artifactory
-
-If you use the CI, for each commit you tag and for which the build is successful, the package will be published [here](https://bmxrdartifactoryfr.jfrog.io/ui/repos/tree/General/bmx-pypi%2Fathletics_performance).
-
-From now on, you may install it **if you configured artifactory according to the python guideline** using:
-
-```
-pip install athletics_performance # latest version
-pip install athletics_performance == x.y.z # for a given x.y.z version
-```
 
 ## Tools
 
