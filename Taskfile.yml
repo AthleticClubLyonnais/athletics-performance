@@ -12,7 +12,7 @@ tasks:
           git commit -m "Initial commit"
           git push -u origin main
         else
-          echo "Already pushed to Gitlab"
+          echo "Git repository already initialized"
         fi
 
   sync:
