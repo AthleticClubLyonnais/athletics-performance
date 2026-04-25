@@ -161,3 +161,11 @@ cython_debug/
 
 # Generated parquet files (built locally from PDF)
 athletics_performance/data/*.parquet
+
+# Claude local workspace state
+.claude/worktrees/
+.claude/todos/
+.claude/*.local.*
+
+# Temporary folders anywhere in the repository
+**/temp/

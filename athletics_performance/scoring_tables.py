@@ -180,15 +180,20 @@ class ScoringTables:
         Raises
         ------
         ValueError
-            If the (sex, event_id, points) combination is not found in the tables.
+            If no performance data exists for the given points or any higher
+            points value for the (sex, event_id) combination.
         """
-        mask = (self._df["sex"] == sex) & (self._df["event"] == event_id) & (self._df["points"] == points)
-        row = self._df[mask]
+        event_df = self._df[(self._df["sex"] == sex) & (self._df["event"] == event_id)]
+        mask = event_df["points"] == points
+        row = event_df[mask]
 
         if row.empty:
-            raise ValueError(
-                f"No performance data for {sex} {event_id} at {points} points."
-            )
+            next_rows = event_df[event_df["points"] > points].sort_values("points")
+            if next_rows.empty:
+                raise ValueError(
+                    f"No performance data for {sex} {event_id} at {points} points or above."
+                )
+            row = next_rows.iloc[[0]]
 
         return float(row.iloc[0]["performance"])
 
