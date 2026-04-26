@@ -13,6 +13,7 @@ Athletics Performance is a Python library for managing athletics results data wi
    guide_storage
    guide_medallion
    guide_event_registry
+   guide_transformations
 
 .. toctree::
    :maxdepth: 2
@@ -28,6 +29,7 @@ Quick Links
 - **Storage Configuration**: Store data locally or in AWS S3 — :doc:`guide_storage`
 - **Medallion Architecture**: Bronze/Silver/Gold data layers — :doc:`guide_medallion`
 - **Event Registry**: Normalize event names from multiple sources — :doc:`guide_event_registry`
+- **Silver Layer Transformations**: Correct performances with reproducibility and audit trail — :doc:`guide_transformations`
 - **System Architecture**: High-level system design — :doc:`architecture`
 - **API Reference**: Complete class and function reference — :ref:`modindex`
 
@@ -53,6 +55,12 @@ Key Features
   - Flexible storage (local filesystem or AWS S3)
   - Medallion architecture (bronze/silver/gold layers)
   - Reproducible data transformation pipelines
+
+**Data Quality & Validation**
+  - Event mapping validation with detailed reporting
+  - Declarative YAML-based transformations
+  - Full audit trail (who/what/when/why)
+  - Reproducibility guarantee (same input + rules = identical output)
 
 **Performance Analysis**
   - Filtering and ranking
