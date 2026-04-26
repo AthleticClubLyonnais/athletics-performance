@@ -8,6 +8,7 @@ from .athlete import Athlete
 from .club import Club, DEPARTMENT_TO_LIGUE
 from .club_membership import ClubMembership
 from .event import Event, EVENT_CATALOG
+from .events import EventRegistry
 from .performance import Performance
 from .performance_catalogue import PerformanceCatalogue
 from .scoring_tables import (
@@ -32,6 +33,7 @@ __all__ = [
     "Club",
     "ClubMembership",
     "Event",
+    "EventRegistry",
     "Performance",
     "PerformanceCatalogue",
     "BEYouthScoringTable",

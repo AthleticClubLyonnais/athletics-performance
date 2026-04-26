@@ -13,6 +13,7 @@ Built for the **Athletic Club du Lyonnais (ACL)**.
 ### Core Data Models
 - **Athlete & Club Models** — Immutable dataclasses with automatic category computation and department/league derivation
 - **Event Catalog** — Pre-configured events with measurement types (time/distance)
+- **Event Registry** — Multilingual event synonym resolution (French, English, World Athletics codes)
 - **Performance Records** — Normalised performance data with automatic year-of-season computation
 - **Performance Catalogue** — Query, filter, rank, and analyze collections of performances
 - **Membership Tracking** — Track athlete club membership with active/inactive status
@@ -108,6 +109,31 @@ jump = EVENT_CATALOG["LJ"]  # Long jump
 
 print(jump.measurement)  # "distance"
 print(jump.unit)         # "m"
+```
+
+### Event Registry
+
+Normalize event names from various sources (athle.fr French names, World Athletics codes, etc.) to canonical event IDs:
+
+```python
+from athletics_performance import EventRegistry
+
+registry = EventRegistry()
+
+# Resolve event synonyms to canonical IDs
+registry.resolve("longueur")       # French → "long_jump"
+registry.resolve("LJ")             # World Athletics code → "long_jump"
+registry.resolve("long jump")      # English → "long_jump"
+
+# Get event metadata
+metadata = registry.get_metadata("long_jump")
+print(metadata.measurement)        # "distance"
+print(metadata.unit)               # "m"
+print(metadata.world_athletics_id) # "LJ"
+
+# Check if event is recognized
+if "100m" in registry:
+    print("100m is registered")
 ```
 
 ### Performance Records
