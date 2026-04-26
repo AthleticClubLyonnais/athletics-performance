@@ -1,7 +1,13 @@
 # Event Registry: Canonical event definitions with multilingual synonyms
 #
 # This YAML file defines the canonical event ID for each athletic event,
-# along with its synonyms in French and English, measurement type, and metadata.
+# including events from World Athletics, French athletics federation (athle.fr),
+# and French youth categories (BE, MI).
+#
+# All events measured in:
+# - "time" (seconds)
+# - "distance" (meters)
+# - "points" (combined events)
 #
 # Used by EventRegistry class to normalize event names from various sources
 # (athle.fr, CSV imports, APIs) to canonical event IDs.
@@ -48,6 +54,87 @@ events:
     english_synonyms:
       - "400m"
       - "400 meters"
+
+  # Youth short sprints (electronic timing)
+  50m:
+    world_athletics_id: ""
+    measurement: time
+    unit: s
+    description: "50 meters sprint (youth electronic timing)"
+    french_synonyms:
+      - "50m"
+      - "50 m"
+      - "50m Electrique"
+      - "50m électrique"
+    english_synonyms:
+      - "50m"
+      - "50 meters"
+
+  80m:
+    world_athletics_id: ""
+    measurement: time
+    unit: s
+    description: "80 meters sprint (youth electronic timing)"
+    french_synonyms:
+      - "80m"
+      - "80 m"
+      - "80m Electrique"
+      - "80m électrique"
+    english_synonyms:
+      - "80m"
+      - "80 meters"
+
+  120m:
+    world_athletics_id: ""
+    measurement: time
+    unit: s
+    description: "120 meters sprint (youth electronic timing)"
+    french_synonyms:
+      - "120m"
+      - "120 m"
+      - "120m Electrique"
+      - "120m électrique"
+    english_synonyms:
+      - "120m"
+      - "120 meters"
+
+  1000m:
+    world_athletics_id: ""
+    measurement: time
+    unit: s
+    description: "1000 meters (youth event with electronic timing)"
+    french_synonyms:
+      - "1000m"
+      - "1 000m"
+      - "1000m Electrique"
+      - "1000m électrique"
+      - "1 000m Electrique"
+      - "1 000m électrique"
+      - "1000m electrique"
+      - "1 000m electrique"
+    english_synonyms:
+      - "1000m"
+      - "1 000m"
+      - "1000 meters"
+
+  2000m:
+    world_athletics_id: ""
+    measurement: time
+    unit: s
+    description: "2000 meters (youth event with electronic timing)"
+    french_synonyms:
+      - "2000m"
+      - "2 000m"
+      - "2000m Electrique"
+      - "2000m électrique"
+      - "2 000m Electrique"
+      - "2 000m électrique"
+      - "2000m electrique"
+      - "2 000m electrique"
+    english_synonyms:
+      - "2000m"
+      - "2 000m"
+      - "2000 meters"
 
   # Track events - Middle distance
   800m:
@@ -125,6 +212,36 @@ events:
       - "42.195 km"
 
   # Hurdles
+  50m_hurdles:
+    world_athletics_id: ""
+    measurement: time
+    unit: s
+    description: "50 meters hurdles (youth event)"
+    french_synonyms:
+      - "50 haies"
+      - "50mH"
+      - "50m haies"
+      - "50 m haies"
+    english_synonyms:
+      - "50m hurdles"
+      - "50mH"
+      - "50 metre hurdles"
+
+  80m_hurdles:
+    world_athletics_id: ""
+    measurement: time
+    unit: s
+    description: "80 meters hurdles (youth event)"
+    french_synonyms:
+      - "80 haies"
+      - "80mH"
+      - "80m haies"
+      - "80 m haies"
+    english_synonyms:
+      - "80m hurdles"
+      - "80mH"
+      - "80 metre hurdles"
+
   100m_hurdles:
     world_athletics_id: "100H"
     measurement: time
@@ -154,6 +271,21 @@ events:
       - "110m hurdles"
       - "110mH"
       - "110 metre hurdles"
+
+  200m_hurdles:
+    world_athletics_id: ""
+    measurement: time
+    unit: s
+    description: "200 meters hurdles (youth event)"
+    french_synonyms:
+      - "200 haies"
+      - "200mH"
+      - "200m haies"
+      - "200 m haies"
+    english_synonyms:
+      - "200m hurdles"
+      - "200mH"
+      - "200 metre hurdles"
 
   400m_hurdles:
     world_athletics_id: "400H"
@@ -187,6 +319,54 @@ events:
       - "3000m steeple"
       - "steeplechase 3000m"
 
+  # Race walking events
+  2000m_walk:
+    world_athletics_id: ""
+    measurement: time
+    unit: s
+    description: "2000 meters race walk (youth event)"
+    french_synonyms:
+      - "2000m Marche"
+      - "2000 Marche"
+      - "2000 m Marche"
+      - "2000m marche"
+      - "2000 marche"
+      - "2000 m marche"
+      - "2000m Marche Electrique"
+      - "2000m marche électrique"
+      - "2000m marche electrique"
+      - "2000 Marche Electrique"
+      - "2 000m Marche Electrique"
+    english_synonyms:
+      - "2000m walk"
+      - "2000 walk"
+      - "2000 meters walk"
+      - "2 000m walk"
+
+  3000m_walk:
+    world_athletics_id: ""
+    measurement: time
+    unit: s
+    description: "3000 meters race walk (youth event)"
+    french_synonyms:
+      - "3000m Marche"
+      - "3000 Marche"
+      - "3000 m Marche"
+      - "3000m marche"
+      - "3000 marche"
+      - "3000 m marche"
+      - "3000m Marche Electrique"
+      - "3000m marche électrique"
+      - "3000m marche electrique"
+      - "3000 Marche Electrique"
+      - "3 000m Marche Electrique"
+      - "3000m Marche Electrique Electronique"
+    english_synonyms:
+      - "3000m walk"
+      - "3000 walk"
+      - "3000 meters walk"
+      - "3 000m walk"
+
   # Relays
   relay_4x100m:
     world_athletics_id: "4X100"
@@ -218,6 +398,48 @@ events:
       - "4x400m"
       - "4 x 400m"
 
+  # Youth relay events
+  relay_4x60m:
+    world_athletics_id: ""
+    measurement: time
+    unit: s
+    description: "4x60 meters relay (youth event)"
+    french_synonyms:
+      - "4x60"
+      - "4 x 60"
+      - "4 x 60m"
+      - "4x60m"
+      - "relais 4x60"
+      - "relais 4x60m"
+      - "4x60m Electrique"
+      - "4 x 60m Electrique"
+      - "4x60m électrique"
+      - "4x60m electrique"
+    english_synonyms:
+      - "4x60m relay"
+      - "4x60m"
+      - "4 x 60m"
+
+  relay_4x60m_mixed:
+    world_athletics_id: ""
+    measurement: time
+    unit: s
+    description: "4x60 meters mixed relay (youth event)"
+    french_synonyms:
+      - "4x60m Mixte"
+      - "4x60 Mixte"
+      - "4x60m mixte"
+      - "4 x 60m Mixte"
+      - "4 x 60m Electrique Mixte"
+      - "4x60m Electrique Mixte"
+      - "4x60m électrique mixte"
+      - "4x60m electrique mixte"
+      - "relais mixte 4x60"
+    english_synonyms:
+      - "4x60m mixed relay"
+      - "4x60m mixed"
+      - "mixed 4x60m"
+
   # Field events - Jumps
   high_jump:
     world_athletics_id: "HJ"
@@ -242,6 +464,7 @@ events:
     french_synonyms:
       - "saut en longueur"
       - "longueur"
+      - "longueu r"  # PDF typo variant
       - "saut longueur"
       - "LJ"
     english_synonyms:
@@ -256,8 +479,8 @@ events:
     description: "Triple jump"
     french_synonyms:
       - "triple saut"
+      - "triple-saut"
       - "saut triple"
-      - "triple saut"
       - "TJ"
     english_synonyms:
       - "triple jump"
