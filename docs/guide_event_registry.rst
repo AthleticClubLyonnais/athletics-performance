@@ -355,6 +355,197 @@ Combine event normalization with scoring:
         except:
             return 0
 
+Event Mapping Validation & Correction
+--------------------------------------
+
+When importing data, you may encounter event names that aren't in the registry.
+Use the event mapping validation tools to detect and correct these issues.
+
+**Step 1: Validate Event Mappings During Import**
+
+.. code-block:: python
+
+    from athletics_performance.event_mapping import validate_event_mapping, print_mapping_report
+    from athletics_performance.medallion import PerformanceMedallion
+
+    medallion = PerformanceMedallion(store)
+
+    # Load bronze data
+    bronze_df = medallion.load_bronze('ac_lyon_2026')
+
+    # Validate event mappings
+    report = validate_event_mapping(bronze_df, event_column='event_name')
+    print_mapping_report(report)
+
+    # Output:
+    # ==============================================================================
+    # EVENT MAPPING VALIDATION REPORT
+    # ==============================================================================
+    #
+    # Total performances: 250
+    # Total unique events: 28
+    # Recognition rate: 98.4%
+    #
+    # Recognized: 246 rows
+    #   From registry:
+    #     100m: 45 rows
+    #       - '100m' (40x)
+    #       - '100 m' (5x)
+    #     long_jump: 30 rows
+    #       - 'longueur' (25x)
+    #       - 'saut en longueur' (5x)
+    #
+    # Unrecognized: 4 rows
+    #   - 'Saut Hauteur': 3 rows
+    #   - 'Disq': 1 row
+    #
+    # Action: Add unrecognized events to event_mapping_overrides.yaml
+
+**Step 2: Add Custom Mappings**
+
+Edit ``athletics_performance/data/event_mapping_overrides.yaml``:
+
+.. code-block:: yaml
+
+    overrides:
+      "Saut Hauteur": "high_jump"    # French variant not in registry
+      "Disq": "discus"               # Typo in source data
+
+**Step 3: Apply Mappings in Silver Layer**
+
+.. code-block:: python
+
+    from athletics_performance.event_mapping import apply_event_mapping
+
+    def normalize_events_with_validation(df):
+        """Silver layer transformation with event validation."""
+        df = df.copy()
+
+        # Deduplicate
+        df = df.drop_duplicates(subset=['perf_id'])
+
+        # Apply event mapping with validation
+        # This will raise error if unrecognized events found
+        df = apply_event_mapping(
+            df,
+            event_column='event_name',
+            fail_on_unknown=True  # Strict mode - no bad data
+        )
+
+        # Convert performance to numeric
+        df['perf_float'] = pd.to_numeric(df['performance'], errors='coerce')
+
+        # Filter invalid
+        df = df[df['perf_float'].notna()]
+        df = df[df['perf_float'] > 0]
+
+        return df
+
+    # Process to silver layer
+    silver_df = medallion.process_pipeline(
+        'ac_lyon_2026',
+        'ac_lyon_2026_processed',
+        [normalize_events_with_validation]
+    )
+
+**Step 4: Reprocess From Bronze If Needed**
+
+If you discover a mapping mistake after processing:
+
+.. code-block:: python
+
+    # Fix the override mapping
+    # Edit event_mapping_overrides.yaml with the correction
+
+    # Reprocess bronze to silver (no re-import needed!)
+    silver_df = medallion.process_pipeline(
+        'ac_lyon_2026',
+        'ac_lyon_2026_processed',
+        [normalize_events_with_validation],
+        overwrite=True  # Update silver layer
+    )
+
+    # Regenerate gold from corrected silver
+    medallion.analytics_pipeline(
+        'ac_lyon_2026_processed',
+        'ac_lyon_records',
+        club_records,
+        overwrite=True
+    )
+
+**Complete Example with Detailed Report**
+
+.. code-block:: python
+
+    import pandas as pd
+    from athletics_performance.event_mapping import (
+        validate_event_mapping,
+        apply_event_mapping,
+        print_mapping_report,
+        load_event_overrides
+    )
+    from athletics_performance.medallion import PerformanceMedallion
+    from athletics_performance.storage import LocalDataStore
+
+    # Setup
+    store = LocalDataStore('/data/athletics')
+    medallion = PerformanceMedallion(store)
+
+    # Load bronze data
+    bronze = medallion.load_bronze('ac_lyon_2026')
+
+    # ===== Phase 1: Validate =====
+    print("\n=== VALIDATION PHASE ===")
+    report = validate_event_mapping(bronze, event_column='event_name')
+    print_mapping_report(report)
+
+    if report['unrecognized_events']:
+        print("To fix: Edit event_mapping_overrides.yaml with:")
+        for event_name, count in sorted(
+            report['unrecognized_events'].items(),
+            key=lambda x: x[1],
+            reverse=True
+        ):
+            print(f'  "{event_name}": "canonical_event_id"')
+        print("\nThen run reprocessing...")
+        exit(1)
+
+    # ===== Phase 2: Process to Silver with Strict Validation =====
+    print("\n=== PROCESSING PHASE ===")
+
+    def process_with_validation(df):
+        df = df.copy()
+        df = df.drop_duplicates(subset=['perf_id'])
+        df = apply_event_mapping(df, fail_on_unknown=True)
+        df['perf_float'] = pd.to_numeric(df['performance'], errors='coerce')
+        df = df[df['perf_float'].notna()]
+        df = df[df['perf_float'] > 0]
+        return df
+
+    try:
+        silver = medallion.process_pipeline(
+            'ac_lyon_2026',
+            'ac_lyon_2026_processed',
+            [process_with_validation]
+        )
+        print(f"SUCCESS: {len(silver)} valid performances in silver layer")
+    except ValueError as e:
+        print(f"ERROR: {e}")
+        exit(1)
+
+    # ===== Phase 3: Analytics =====
+    print("\n=== ANALYTICS PHASE ===")
+
+    def club_records(df):
+        return df.loc[df.groupby('event_id')['perf_float'].idxmin()]
+
+    gold = medallion.analytics_pipeline(
+        'ac_lyon_2026_processed',
+        'ac_lyon_records',
+        club_records
+    )
+    print(f"SUCCESS: {len(gold)} club records in gold layer")
+
 Testing Event Normalization
 ----------------------------
 

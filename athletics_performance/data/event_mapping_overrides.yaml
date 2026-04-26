@@ -1,0 +1,32 @@
+# Event Mapping Overrides
+#
+# Use this file to add custom event name mappings for your data sources.
+# This is useful for:
+# - Fixing typos in source data
+# - Mapping non-standard event names from specific sources
+# - Adding context-specific variants
+#
+# When importing data to silver layer:
+# 1. The EventRegistry attempts to resolve event names
+# 2. If unrecognized, this file is checked for custom mappings
+# 3. If still unrecognized, an error is raised with the unrecognized names
+#
+# Workflow:
+# 1. Import data to bronze layer
+# 2. Try processing to silver - it will show unrecognized events
+# 3. Add mappings below for the unrecognized events
+# 4. Reprocess bronze to silver (no re-import needed!)
+#
+# Format:
+#   raw_event_name: canonical_event_id
+#
+# Example:
+#   "Saut Hauteur": "high_jump"
+#   "Disq": "discus"
+#   "100m plat": "100m"
+
+overrides:
+  # Add your custom mappings here
+  # Example:
+  # "Saut Hauteur": "high_jump"
+  # "Disq": "discus"

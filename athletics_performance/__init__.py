@@ -8,6 +8,12 @@ from .athlete import Athlete
 from .club import Club, DEPARTMENT_TO_LIGUE
 from .club_membership import ClubMembership
 from .event import Event, EVENT_CATALOG
+from .event_mapping import (
+    load_event_overrides,
+    resolve_event_with_overrides,
+    validate_event_mapping,
+    apply_event_mapping,
+)
 from .events import EventRegistry
 from .performance import Performance
 from .performance_catalogue import PerformanceCatalogue
@@ -36,6 +42,10 @@ __all__ = [
     "EventRegistry",
     "Performance",
     "PerformanceCatalogue",
+    "apply_event_mapping",
+    "load_event_overrides",
+    "resolve_event_with_overrides",
+    "validate_event_mapping",
     "BEYouthScoringTable",
     "MIYouthScoringTable",
     "ScoringTable",
