@@ -27,9 +27,7 @@ class DataStore(ABC):
         pass
 
     @abstractmethod
-    def write_parquet(
-        self, df: pd.DataFrame, path: str, index: bool = False
-    ) -> None:
+    def write_parquet(self, df: pd.DataFrame, path: str, index: bool = False) -> None:
         """Write a Parquet file to storage."""
         pass
 
@@ -75,9 +73,7 @@ class LocalDataStore(DataStore):
             raise FileNotFoundError(f"File not found: {file_path}")
         return pd.read_parquet(file_path)
 
-    def write_parquet(
-        self, df: pd.DataFrame, path: str, index: bool = False
-    ) -> None:
+    def write_parquet(self, df: pd.DataFrame, path: str, index: bool = False) -> None:
         """Write Parquet file to local storage."""
         file_path = self.base_path / path
         file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -128,8 +124,7 @@ class S3DataStore(DataStore):
             import boto3
         except ImportError:
             raise ImportError(
-                "boto3 is required for S3 support. "
-                "Install with: pip install boto3"
+                "boto3 is required for S3 support. " "Install with: pip install boto3"
             )
 
         self.bucket = bucket
@@ -148,9 +143,7 @@ class S3DataStore(DataStore):
     def exists(self, path: str) -> bool:
         """Check if file exists in S3."""
         try:
-            self.s3_client.head_object(
-                Bucket=self.bucket, Key=self._s3_path(path)
-            )
+            self.s3_client.head_object(Bucket=self.bucket, Key=self._s3_path(path))
             return True
         except self.s3_client.exceptions.NoSuchKey:
             return False
@@ -160,9 +153,7 @@ class S3DataStore(DataStore):
         s3_path = f"s3://{self.bucket}/{self._s3_path(path)}"
         return pd.read_parquet(s3_path)
 
-    def write_parquet(
-        self, df: pd.DataFrame, path: str, index: bool = False
-    ) -> None:
+    def write_parquet(self, df: pd.DataFrame, path: str, index: bool = False) -> None:
         """Write Parquet file to S3."""
         s3_path = f"s3://{self.bucket}/{self._s3_path(path)}"
         df.to_parquet(s3_path, index=index)
@@ -173,9 +164,7 @@ class S3DataStore(DataStore):
         if not prefix.endswith("/"):
             prefix += "/"
 
-        response = self.s3_client.list_objects_v2(
-            Bucket=self.bucket, Prefix=prefix
-        )
+        response = self.s3_client.list_objects_v2(Bucket=self.bucket, Prefix=prefix)
 
         if "Contents" not in response:
             return []
@@ -189,9 +178,7 @@ class S3DataStore(DataStore):
     def delete(self, path: str) -> None:
         """Delete a file from S3."""
         if self.exists(path):
-            self.s3_client.delete_object(
-                Bucket=self.bucket, Key=self._s3_path(path)
-            )
+            self.s3_client.delete_object(Bucket=self.bucket, Key=self._s3_path(path))
 
 
 def get_default_data_store(
@@ -244,9 +231,7 @@ def get_default_data_store(
     )
 
     if storage_type == "s3":
-        bucket = storage_config.get(
-            "bucket", os.environ.get("ATHLETICS_S3_BUCKET")
-        )
+        bucket = storage_config.get("bucket", os.environ.get("ATHLETICS_S3_BUCKET"))
         if not bucket:
             raise ValueError(
                 "S3 bucket must be specified via 'bucket' config or "
@@ -255,9 +240,7 @@ def get_default_data_store(
 
         prefix = storage_config.get(
             "prefix",
-            os.environ.get(
-                "ATHLETICS_S3_PREFIX", "athletics-performance"
-            ),
+            os.environ.get("ATHLETICS_S3_PREFIX", "athletics-performance"),
         )
         region = storage_config.get(
             "region", os.environ.get("ATHLETICS_AWS_REGION", "us-east-1")
@@ -266,7 +249,5 @@ def get_default_data_store(
         return S3DataStore(bucket=bucket, prefix=prefix, region_name=region)
 
     else:  # local
-        path = storage_config.get(
-            "path", os.environ.get("ATHLETICS_STORAGE_PATH")
-        )
+        path = storage_config.get("path", os.environ.get("ATHLETICS_STORAGE_PATH"))
         return LocalDataStore(base_path=path)

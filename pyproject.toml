@@ -17,6 +17,7 @@ dependencies = [
     "pdfplumber>=0.11.9",
     "pyarrow>=18",
     "pyyaml>=6.0",
+    "plotly>=5.24.0",
 ]
 
 [dependency-groups]

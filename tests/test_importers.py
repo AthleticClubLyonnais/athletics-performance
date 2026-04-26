@@ -84,15 +84,19 @@ class TestPerformanceImporter:
                 def fetch_data(self, **kwargs) -> pd.DataFrame:
                     # Return different data each call
                     if self.call_count == 0:
-                        return pd.DataFrame({
-                            "perf_id": ["P1", "P2"],
-                            "value": [10, 20],
-                        })
+                        return pd.DataFrame(
+                            {
+                                "perf_id": ["P1", "P2"],
+                                "value": [10, 20],
+                            }
+                        )
                     else:
-                        return pd.DataFrame({
-                            "perf_id": ["P2", "P3"],  # P2 is duplicate
-                            "value": [20, 30],
-                        })
+                        return pd.DataFrame(
+                            {
+                                "perf_id": ["P2", "P3"],  # P2 is duplicate
+                                "value": [20, 30],
+                            }
+                        )
 
                 def parse_performances(self, df: pd.DataFrame) -> pd.DataFrame:
                     return df
@@ -100,17 +104,11 @@ class TestPerformanceImporter:
             importer = ConcreteImporter(data_dir)
 
             # First import
-            importer.import_to_parquet(
-                "test_data.parquet",
-                handle_duplicates="skip"
-            )
+            importer.import_to_parquet("test_data.parquet", handle_duplicates="skip")
 
             # Second import with duplicate P2
             importer.call_count = 1
-            importer.import_to_parquet(
-                "test_data.parquet",
-                handle_duplicates="skip"
-            )
+            importer.import_to_parquet("test_data.parquet", handle_duplicates="skip")
 
             # Check result - should have P1, P2, P3 but not duplicate P2
             loaded = importer.load_from_parquet("test_data.parquet")
@@ -133,15 +131,19 @@ class TestPerformanceImporter:
 
                 def fetch_data(self, **kwargs) -> pd.DataFrame:
                     if self.call_count == 0:
-                        return pd.DataFrame({
-                            "perf_id": ["P1", "P2"],
-                            "value": [10, 20],
-                        })
+                        return pd.DataFrame(
+                            {
+                                "perf_id": ["P1", "P2"],
+                                "value": [10, 20],
+                            }
+                        )
                     else:
-                        return pd.DataFrame({
-                            "perf_id": ["P2"],  # Replace P2
-                            "value": [999],
-                        })
+                        return pd.DataFrame(
+                            {
+                                "perf_id": ["P2"],  # Replace P2
+                                "value": [999],
+                            }
+                        )
 
                 def parse_performances(self, df: pd.DataFrame) -> pd.DataFrame:
                     return df
@@ -149,17 +151,11 @@ class TestPerformanceImporter:
             importer = ConcreteImporter(data_dir)
 
             # First import
-            importer.import_to_parquet(
-                "test_data.parquet",
-                handle_duplicates="skip"
-            )
+            importer.import_to_parquet("test_data.parquet", handle_duplicates="skip")
 
             # Second import replacing P2
             importer.call_count = 1
-            importer.import_to_parquet(
-                "test_data.parquet",
-                handle_duplicates="replace"
-            )
+            importer.import_to_parquet("test_data.parquet", handle_duplicates="replace")
 
             loaded = importer.load_from_parquet("test_data.parquet")
             p2_row = loaded[loaded["perf_id"] == "P2"]
@@ -181,15 +177,19 @@ class TestPerformanceImporter:
 
                 def fetch_data(self, **kwargs) -> pd.DataFrame:
                     if self.call_count == 0:
-                        return pd.DataFrame({
-                            "perf_id": ["P1", "P2"],
-                            "value": [10, 20],
-                        })
+                        return pd.DataFrame(
+                            {
+                                "perf_id": ["P1", "P2"],
+                                "value": [10, 20],
+                            }
+                        )
                     else:
-                        return pd.DataFrame({
-                            "perf_id": ["P2", "P3"],
-                            "value": [20, 30],
-                        })
+                        return pd.DataFrame(
+                            {
+                                "perf_id": ["P2", "P3"],
+                                "value": [20, 30],
+                            }
+                        )
 
                 def parse_performances(self, df: pd.DataFrame) -> pd.DataFrame:
                     return df
@@ -197,17 +197,13 @@ class TestPerformanceImporter:
             importer = ConcreteImporter(data_dir)
 
             # First import
-            importer.import_to_parquet(
-                "test_data.parquet",
-                handle_duplicates="skip"
-            )
+            importer.import_to_parquet("test_data.parquet", handle_duplicates="skip")
 
             # Second import should error on duplicates
             importer.call_count = 1
             with pytest.raises(ValueError, match="Found .* duplicate"):
                 importer.import_to_parquet(
-                    "test_data.parquet",
-                    handle_duplicates="error"
+                    "test_data.parquet", handle_duplicates="error"
                 )
 
     def test_apply_transformation(self) -> None:
@@ -234,10 +230,7 @@ class TestPerformanceImporter:
                 df["value"] = df["value"] * 2
                 return df
 
-            importer.apply_transformation(
-                "test_data.parquet",
-                double_values
-            )
+            importer.apply_transformation("test_data.parquet", double_values)
 
             loaded = importer.load_from_parquet("test_data.parquet")
             assert list(loaded["value"]) == [2, 4, 6]
@@ -253,10 +246,12 @@ class TestPerformanceImporter:
                     return "test"
 
                 def fetch_data(self, **kwargs) -> pd.DataFrame:
-                    return pd.DataFrame({
-                        "perf_id": ["P1", "P2"],
-                        "performance": ["10.5", "11.2"],
-                    })
+                    return pd.DataFrame(
+                        {
+                            "perf_id": ["P1", "P2"],
+                            "performance": ["10.5", "11.2"],
+                        }
+                    )
 
                 def parse_performances(self, df: pd.DataFrame) -> pd.DataFrame:
                     return df
@@ -266,13 +261,12 @@ class TestPerformanceImporter:
 
             # Add computed column
             def add_scores(df: pd.DataFrame) -> pd.DataFrame:
-                df["score"] = df["performance"].astype(float).apply(lambda x: int(1000 / x))
+                df["score"] = (
+                    df["performance"].astype(float).apply(lambda x: int(1000 / x))
+                )
                 return df
 
-            importer.apply_transformation(
-                "test_data.parquet",
-                add_scores
-            )
+            importer.apply_transformation("test_data.parquet", add_scores)
 
             loaded = importer.load_from_parquet("test_data.parquet")
             assert "score" in loaded.columns
@@ -289,10 +283,12 @@ class TestPerformanceImporter:
                     return "test"
 
                 def fetch_data(self, **kwargs) -> pd.DataFrame:
-                    return pd.DataFrame({
-                        "perf_id": ["P1", "P2", "P2", "P3"],
-                        "value": [10, 20, 20, 30],
-                    })
+                    return pd.DataFrame(
+                        {
+                            "perf_id": ["P1", "P2", "P2", "P3"],
+                            "value": [10, 20, 20, 30],
+                        }
+                    )
 
                 def parse_performances(self, df: pd.DataFrame) -> pd.DataFrame:
                     return df
@@ -315,10 +311,12 @@ class TestPerformanceImporter:
                     return "test"
 
                 def fetch_data(self, **kwargs) -> pd.DataFrame:
-                    return pd.DataFrame({
-                        "perf_id": ["P1", "P2", "P2", "P3"],
-                        "value": [10, 20, 25, 30],
-                    })
+                    return pd.DataFrame(
+                        {
+                            "perf_id": ["P1", "P2", "P2", "P3"],
+                            "value": [10, 20, 25, 30],
+                        }
+                    )
 
                 def parse_performances(self, df: pd.DataFrame) -> pd.DataFrame:
                     return df
@@ -413,16 +411,18 @@ class TestAthleFrImporter:
         """parse_performances maps French column names correctly."""
         importer = AthleFrImporter()
 
-        df = pd.DataFrame({
-            "Athlète": ["John Doe"],
-            "Épreuve": ["100m"],
-            "Perf.": ["10.5"],
-            "Date": ["01/01/2026"],
-            "Licence": ["12345"],
-            "Club": ["AC Lyon"],
-            "Lieu": ["Paris"],
-            "Sexe": ["M"],
-        })
+        df = pd.DataFrame(
+            {
+                "Athlète": ["John Doe"],
+                "Épreuve": ["100m"],
+                "Perf.": ["10.5"],
+                "Date": ["01/01/2026"],
+                "Licence": ["12345"],
+                "Club": ["AC Lyon"],
+                "Lieu": ["Paris"],
+                "Sexe": ["M"],
+            }
+        )
 
         result = importer.parse_performances(df)
 
@@ -439,10 +439,12 @@ class TestAthleFrImporter:
         """parse_performances correctly parses French date format."""
         importer = AthleFrImporter()
 
-        df = pd.DataFrame({
-            "Athlète": ["John Doe"],
-            "Date": ["15/03/2026"],
-        })
+        df = pd.DataFrame(
+            {
+                "Athlète": ["John Doe"],
+                "Date": ["15/03/2026"],
+            }
+        )
 
         result = importer.parse_performances(df)
 
@@ -455,12 +457,14 @@ class TestAthleFrImporter:
         """parse_performances generates unique performance IDs."""
         importer = AthleFrImporter()
 
-        df = pd.DataFrame({
-            "Athlète": ["John Doe", "Jane Smith"],
-            "Licence": ["12345", "67890"],
-            "Date": ["01/01/2026", "02/01/2026"],
-            "Perf.": ["10.5", "11.2"],
-        })
+        df = pd.DataFrame(
+            {
+                "Athlète": ["John Doe", "Jane Smith"],
+                "Licence": ["12345", "67890"],
+                "Date": ["01/01/2026", "02/01/2026"],
+                "Perf.": ["10.5", "11.2"],
+            }
+        )
 
         result = importer.parse_performances(df)
 
@@ -473,10 +477,12 @@ class TestAthleFrImporter:
         """parse_performances handles DataFrames with missing optional columns."""
         importer = AthleFrImporter()
 
-        df = pd.DataFrame({
-            "Athlète": ["John Doe"],
-            "Épreuve": ["100m"],
-        })
+        df = pd.DataFrame(
+            {
+                "Athlète": ["John Doe"],
+                "Épreuve": ["100m"],
+            }
+        )
 
         result = importer.parse_performances(df)
 

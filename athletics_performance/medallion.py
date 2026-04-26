@@ -29,9 +29,7 @@ class PerformanceMedallion:
         """
         self.store = data_store
 
-    def save_bronze(
-        self, df: pd.DataFrame, name: str, overwrite: bool = False
-    ) -> str:
+    def save_bronze(self, df: pd.DataFrame, name: str, overwrite: bool = False) -> str:
         """Save raw performance data to bronze layer.
 
         Bronze layer contains raw, minimally processed data from importers.
@@ -83,9 +81,7 @@ class PerformanceMedallion:
         path = f"bronze/{name}.parquet"
         return self.store.read_parquet(path)
 
-    def save_silver(
-        self, df: pd.DataFrame, name: str, overwrite: bool = False
-    ) -> str:
+    def save_silver(self, df: pd.DataFrame, name: str, overwrite: bool = False) -> str:
         """Save processed performance data to silver layer.
 
         Silver layer contains cleaned, validated, deduplicated data with
@@ -140,9 +136,7 @@ class PerformanceMedallion:
         path = f"silver/{name}.parquet"
         return self.store.read_parquet(path)
 
-    def save_gold(
-        self, df: pd.DataFrame, name: str, overwrite: bool = False
-    ) -> str:
+    def save_gold(self, df: pd.DataFrame, name: str, overwrite: bool = False) -> str:
         """Save analytics-ready performance data to gold layer.
 
         Gold layer contains aggregated, denormalized data optimized for
