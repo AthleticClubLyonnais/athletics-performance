@@ -14,6 +14,7 @@ Athletics Performance is a Python library for managing athletics results data wi
    guide_medallion
    guide_event_registry
    guide_transformations
+   guide_visualizations
 
 .. toctree::
    :maxdepth: 2
@@ -30,6 +31,7 @@ Quick Links
 - **Medallion Architecture**: Bronze/Silver/Gold data layers — :doc:`guide_medallion`
 - **Event Registry**: Normalize event names from multiple sources — :doc:`guide_event_registry`
 - **Silver Layer Transformations**: Correct performances with reproducibility and audit trail — :doc:`guide_transformations`
+- **Performance Visualizations**: Interactive Plotly charts and HTML dashboards — :doc:`guide_visualizations`
 - **System Architecture**: High-level system design — :doc:`architecture`
 - **API Reference**: Complete class and function reference — :ref:`modindex`
 
@@ -62,7 +64,8 @@ Key Features
   - Full audit trail (who/what/when/why)
   - Reproducibility guarantee (same input + rules = identical output)
 
-**Performance Analysis**
-  - Filtering and ranking
-  - Statistics and grouping
-  - Method chaining for complex queries
+**Performance Analysis & Visualization**
+  - Filtering, ranking, statistics, grouping with method chaining
+  - Interactive Plotly charts (progression, distribution, rankings, heatmaps)
+  - HTML dashboards with hover tooltips and zoom/pan
+  - Season comparison, category analysis, multi-athlete comparison

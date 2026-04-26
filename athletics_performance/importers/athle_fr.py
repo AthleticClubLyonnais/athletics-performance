@@ -32,9 +32,11 @@ class AthleFrImporter(PerformanceImporter):
         super().__init__(data_dir)
         self.timeout = timeout
         self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-        })
+        self.session.headers.update(
+            {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+            }
+        )
 
     @property
     def source_name(self) -> str:
@@ -42,11 +44,7 @@ class AthleFrImporter(PerformanceImporter):
         return "athle_fr"
 
     def fetch_data(
-        self,
-        club_id: str,
-        season: int = 2026,
-        mode: int = 1,
-        **kwargs
+        self, club_id: str, season: int = 2026, mode: int = 1, **kwargs
     ) -> pd.DataFrame:
         """Fetch performance data from athle.fr for a specific club.
 
@@ -187,11 +185,15 @@ class AthleFrImporter(PerformanceImporter):
         }
 
         # Rename columns
-        result = result.rename(columns={k: v for k, v in column_mapping.items() if k in result.columns})
+        result = result.rename(
+            columns={k: v for k, v in column_mapping.items() if k in result.columns}
+        )
 
         # Parse date
         if "date" in result.columns:
-            result["date"] = pd.to_datetime(result["date"], format="%d/%m/%Y", errors="coerce")
+            result["date"] = pd.to_datetime(
+                result["date"], format="%d/%m/%Y", errors="coerce"
+            )
 
         # Create performance ID if not present
         if "perf_id" not in result.columns:
@@ -228,7 +230,10 @@ class AthleFrImporter(PerformanceImporter):
         ]
 
         available_cols = [col for col in standard_cols if col in result.columns]
-        result = result[available_cols + [col for col in result.columns if col not in available_cols]]
+        result = result[
+            available_cols
+            + [col for col in result.columns if col not in available_cols]
+        ]
 
         return result
 

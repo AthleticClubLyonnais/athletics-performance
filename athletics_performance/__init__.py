@@ -38,6 +38,11 @@ from .transformations import (
     report_transformations,
     verify_reproducibility,
 )
+from .visualizations import (
+    PerformanceVisualizer,
+    export_to_html,
+    export_individual_html,
+)
 
 __description__ = "Athletics performance scoring and conversion tools"
 
@@ -78,4 +83,7 @@ __all__ = [
     "load_corrections_manifest",
     "report_transformations",
     "verify_reproducibility",
+    "PerformanceVisualizer",
+    "export_to_html",
+    "export_individual_html",
 ]

@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `save/load_corrections_manifest()` for audit trail storage
   - `report_transformations()` for human-readable summaries
 - **Transformation Manifests**: Full audit trail tracking all corrections (rule_id, perf_id, field, old_value, new_value, applied_date, reviewer, source_file)
+- **Performance Visualization Module**: Interactive Plotly-based charts with HTML export
+  - `PerformanceVisualizer` class with 8 visualization methods
+  - Athlete progression, performance distribution, multi-athlete time series
+  - Event performance matrix (athlete × event heatmap)
+  - Ranking charts, category analysis, statistics dashboard, season comparison
+  - `export_to_html()` and `export_individual_html()` for HTML dashboard export
+  - Interactive hover tooltips, zoom/pan, legend filtering on all charts
+  - Responsive design for desktop/tablet/mobile
 - Guide documentation for transformations workflow (guide_transformations.rst)
 - GitHub Actions workflow for automated PyPI publishing on tagged releases
 - GitHub Actions workflow for automated documentation deployment to GitHub Pages

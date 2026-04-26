@@ -181,7 +181,23 @@ class WorldAthletics2025ScoringTable(ScoringTable):
 
     # Senior categories for which WA tables apply
     _APPLICABLE = frozenset(
-        ["CA", "JU", "ES", "SE", "M", "M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9"]
+        [
+            "CA",
+            "JU",
+            "ES",
+            "SE",
+            "M",
+            "M0",
+            "M1",
+            "M2",
+            "M3",
+            "M4",
+            "M5",
+            "M6",
+            "M7",
+            "M8",
+            "M9",
+        ]
     )
 
     DATA_PATH = (

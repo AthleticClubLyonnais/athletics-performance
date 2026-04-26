@@ -98,7 +98,7 @@ class PerformanceImporter(ABC):
         self,
         output_file: Optional[str] = None,
         handle_duplicates: str = "skip",
-        **kwargs
+        **kwargs,
     ) -> Path:
         """Fetch, parse, and save performances to Parquet.
 
@@ -133,18 +133,14 @@ class PerformanceImporter(ABC):
         # Handle duplicates if file already exists
         if self.data_store.exists(output_file) and handle_duplicates != "keep":
             existing_df = self.data_store.read_parquet(output_file)
-            perf_df = self._merge_performances(
-                existing_df, perf_df, handle_duplicates
-            )
+            perf_df = self._merge_performances(existing_df, perf_df, handle_duplicates)
 
         self.data_store.write_parquet(perf_df, output_file)
         return output_file
 
     @staticmethod
     def _merge_performances(
-        existing: pd.DataFrame,
-        new: pd.DataFrame,
-        handle_duplicates: str
+        existing: pd.DataFrame, new: pd.DataFrame, handle_duplicates: str
     ) -> pd.DataFrame:
         """Merge new performances with existing ones, handling duplicates.
 

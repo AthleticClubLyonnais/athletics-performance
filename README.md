@@ -23,6 +23,12 @@ Built for the **Athletic Club du Lyonnais (ACL)**.
 - **Silver Layer Transformations** — Declarative YAML-based data corrections with full audit trail and reproducibility guarantee
 - **Transformation Manifests** — Track all corrections (who/what/when/why) in audit-ready format
 
+### Performance Visualization & Analysis
+- **Interactive Charts** — Plotly-based visualizations with hover tooltips, zoom, pan, filtering
+- **Multiple Chart Types** — Progression, distribution, rankings, heatmaps, time series, dashboards
+- **HTML Export** — Self-contained files that work in any browser with no dependencies
+- **Responsive Design** — Works on desktop, tablet, and mobile devices
+
 ### Scoring & Analytics
 - **World Athletics Scoring Tables** — Official 2025 scoring table lookup system with PDF-to-parquet conversion
 - **French Youth Categories** — BE and MI category scoring tables with automatic sex-based computation
@@ -211,6 +217,56 @@ Key benefits:
 - **Flexible Selection** — Target specific performances or match complex conditions
 
 See [guide_transformations.rst](docs/guide_transformations.rst) for complete workflow documentation.
+
+### Performance Visualization
+
+Interactive Plotly-based charts with HTML export for comprehensive performance analysis:
+
+```python
+from athletics_performance import PerformanceVisualizer, export_to_html
+import pandas as pd
+
+# Load performance data
+df = pd.read_parquet("data/silver/performances.parquet")
+
+# Create visualizer
+viz = PerformanceVisualizer(df)
+
+# Create multiple visualizations
+figures = {
+    "Athlete Progression": viz.athlete_progression("A001", "100m"),
+    "Performance Distribution": viz.performance_distribution("100m"),
+    "Top Rankings": viz.ranking_chart("100m", top_n=10),
+    "Event Matrix": viz.event_performance_matrix(),
+    "Category Analysis": viz.category_analysis("100m"),
+    "Statistics Dashboard": viz.statistics_dashboard("100m"),
+    "Season Comparison": viz.season_comparison("A001", "100m"),
+    "Multi-Athlete Comparison": viz.multi_athlete_timeseries(
+        ["A001", "A002", "A003"], "100m"
+    ),
+}
+
+# Export to interactive HTML dashboard
+export_to_html(
+    figures,
+    "analysis.html",
+    title="Performance Analysis Dashboard"
+)
+```
+
+Available charts:
+- **Athlete Progression**: Line chart of personal bests over time
+- **Performance Distribution**: Histogram or box plot of athlete distribution
+- **Time Series**: Compare multiple athletes' performances over time
+- **Event Matrix**: Heatmap of athlete × event performance grid
+- **Ranking Charts**: Horizontal bar chart ranking athletes
+- **Category Analysis**: Box plots comparing performance across age categories/clubs
+- **Statistics Dashboard**: Multi-panel summary with distribution and stats
+- **Season Comparison**: Bar chart of year-over-year improvement
+
+All visualizations are interactive (hover for details, click to filter, zoom/pan). Export as self-contained HTML files that work in any browser with no dependencies.
+
+See [guide_visualizations.rst](docs/guide_visualizations.rst) for complete documentation.
 
 ### Performance Records
 
@@ -431,6 +487,22 @@ See [STORAGE_CONFIGURATION.md](STORAGE_CONFIGURATION.md) for complete configurat
 | **save_corrections_manifest()** | Save audit trail to parquet |
 | **load_corrections_manifest()** | Load audit trail from parquet |
 | **report_transformations()** | Generate human-readable correction summary |
+
+### Performance Visualization
+
+| Class/Function | Purpose |
+|--------|---------|
+| **PerformanceVisualizer** | Main class for creating interactive Plotly visualizations |
+| **athlete_progression()** | Line chart of athlete's personal bests over time |
+| **performance_distribution()** | Box plot or histogram of performance distribution |
+| **multi_athlete_timeseries()** | Compare multiple athletes' performances over time |
+| **event_performance_matrix()** | Heatmap of athlete × event performance grid |
+| **ranking_chart()** | Horizontal bar chart ranking athletes |
+| **category_analysis()** | Box plots by age category or club |
+| **statistics_dashboard()** | Multi-panel summary with charts and statistics |
+| **season_comparison()** | Bar chart of year-over-year progression |
+| **export_to_html()** | Export multiple figures to interactive HTML dashboard |
+| **export_individual_html()** | Export single figure to HTML file |
 
 ### Constants
 
