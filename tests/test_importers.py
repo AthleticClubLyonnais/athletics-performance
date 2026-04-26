@@ -59,7 +59,8 @@ class TestPerformanceImporter:
 
             # Import data
             output_path = importer.import_to_parquet("test_data.parquet")
-            assert output_path.exists()
+            assert isinstance(output_path, str)
+            assert importer.data_store.exists(output_path)
 
             # Load it back
             loaded = importer.load_from_parquet("test_data.parquet")

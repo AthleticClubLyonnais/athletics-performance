@@ -6,6 +6,8 @@ from typing import Optional
 
 import pandas as pd
 
+from ..storage import DataStore, LocalDataStore
+
 
 class PerformanceImporter(ABC):
     """Abstract base class for importing performances from various sources.
@@ -14,19 +16,48 @@ class PerformanceImporter(ABC):
     or APIs that provide athletic performance data.
     """
 
-    def __init__(self, data_dir: Optional[Path] = None) -> None:
+    def __init__(
+        self,
+        data_dir: Optional[Path] = None,
+        data_store: Optional[DataStore] = None,
+    ) -> None:
         """Initialize the importer.
 
         Parameters
         ----------
         data_dir : Path, optional
-            Directory to store imported Parquet files. Defaults to
-            athletics_performance/data/imported/
+            (Deprecated) Directory to store imported Parquet files.
+            Use data_store parameter instead for more flexibility.
+            Defaults to athletics_performance/data/imported/
+        data_store : DataStore, optional
+            Storage backend for performances (local or S3).
+            If not provided and data_dir is None, uses LocalDataStore
+            with default location.
+
+        Examples
+        --------
+        >>> # Local storage with custom path
+        >>> importer = AthleFrImporter(
+        ...     data_store=LocalDataStore('/data/athletics')
+        ... )
+
+        >>> # S3 storage
+        >>> from athletics_performance.storage import S3DataStore
+        >>> importer = AthleFrImporter(
+        ...     data_store=S3DataStore('my-bucket', 'performances')
+        ... )
         """
-        if data_dir is None:
-            data_dir = Path(__file__).parent.parent / "data" / "imported"
-        self.data_dir = Path(data_dir)
-        self.data_dir.mkdir(parents=True, exist_ok=True)
+        if data_store is not None:
+            self.data_store = data_store
+            # Keep data_dir for backward compatibility
+            self.data_dir = None
+        else:
+            # Backward compatibility: use data_dir parameter
+            if data_dir is None:
+                data_dir = Path(__file__).parent.parent / "data" / "imported"
+            self.data_dir = Path(data_dir)
+            self.data_dir.mkdir(parents=True, exist_ok=True)
+            self.data_store = LocalDataStore(base_path=self.data_dir)
 
     @abstractmethod
     def fetch_data(self, **kwargs) -> pd.DataFrame:
@@ -98,17 +129,16 @@ class PerformanceImporter(ABC):
         # Determine output path
         if output_file is None:
             output_file = f"{self.source_name}_performances.parquet"
-        output_path = self.data_dir / output_file
 
         # Handle duplicates if file already exists
-        if output_path.exists() and handle_duplicates != "keep":
-            existing_df = pd.read_parquet(output_path)
+        if self.data_store.exists(output_file) and handle_duplicates != "keep":
+            existing_df = self.data_store.read_parquet(output_file)
             perf_df = self._merge_performances(
                 existing_df, perf_df, handle_duplicates
             )
 
-        perf_df.to_parquet(output_path, index=False)
-        return output_path
+        self.data_store.write_parquet(perf_df, output_file)
+        return output_file
 
     @staticmethod
     def _merge_performances(
@@ -179,15 +209,14 @@ class PerformanceImporter(ABC):
         pd.DataFrame
             Loaded performance data
         """
-        path = self.data_dir / filename
-        return pd.read_parquet(path)
+        return self.data_store.read_parquet(filename)
 
     def apply_transformation(
         self,
         filename: str,
         transformation_func,
         output_file: Optional[str] = None,
-    ) -> Path:
+    ) -> str:
         """Apply a transformation function to stored performances and save.
 
         The transformation function receives a DataFrame and should return
@@ -206,7 +235,7 @@ class PerformanceImporter(ABC):
 
         Returns
         -------
-        Path
+        str
             Path to the saved Parquet file
 
         Examples
@@ -236,11 +265,10 @@ class PerformanceImporter(ABC):
         # Determine output path
         if output_file is None:
             output_file = filename
-        output_path = self.data_dir / output_file
 
         # Save result
-        transformed_df.to_parquet(output_path, index=False)
-        return output_path
+        self.data_store.write_parquet(transformed_df, output_file)
+        return output_file
 
     def get_duplicates(self, filename: str) -> pd.DataFrame:
         """Find duplicate performances in stored Parquet file.
@@ -274,7 +302,7 @@ class PerformanceImporter(ABC):
         filename: str,
         keep: str = "first",
         output_file: Optional[str] = None,
-    ) -> Path:
+    ) -> str:
         """Remove duplicate performances from stored Parquet file.
 
         Parameters
@@ -290,7 +318,7 @@ class PerformanceImporter(ABC):
 
         Returns
         -------
-        Path
+        str
             Path to the deduplicated Parquet file
         """
         df = self.load_from_parquet(filename)
@@ -302,11 +330,10 @@ class PerformanceImporter(ABC):
 
         if output_file is None:
             output_file = filename
-        output_path = self.data_dir / output_file
 
-        df_dedup.to_parquet(output_path, index=False)
+        self.data_store.write_parquet(df_dedup, output_file)
 
-        return output_path
+        return output_file
 
     @property
     @abstractmethod
