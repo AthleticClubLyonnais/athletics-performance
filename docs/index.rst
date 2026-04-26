@@ -12,6 +12,7 @@ Athletics Performance is a Python library for managing athletics results data wi
    guide_data_ingestion
    guide_storage
    guide_medallion
+   guide_event_registry
 
 .. toctree::
    :maxdepth: 2
@@ -26,6 +27,7 @@ Quick Links
 - **Data Ingestion**: Import performances from athle.fr and other sources — :doc:`guide_data_ingestion`
 - **Storage Configuration**: Store data locally or in AWS S3 — :doc:`guide_storage`
 - **Medallion Architecture**: Bronze/Silver/Gold data layers — :doc:`guide_medallion`
+- **Event Registry**: Normalize event names from multiple sources — :doc:`guide_event_registry`
 - **System Architecture**: High-level system design — :doc:`architecture`
 - **API Reference**: Complete class and function reference — :ref:`modindex`
 

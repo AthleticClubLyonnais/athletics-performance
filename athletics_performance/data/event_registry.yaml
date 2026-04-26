@@ -1,0 +1,363 @@
+# Event Registry: Canonical event definitions with multilingual synonyms
+#
+# This YAML file defines the canonical event ID for each athletic event,
+# along with its synonyms in French and English, measurement type, and metadata.
+#
+# Used by EventRegistry class to normalize event names from various sources
+# (athle.fr, CSV imports, APIs) to canonical event IDs.
+
+events:
+  # Track events - Short distances
+  100m:
+    world_athletics_id: "100"
+    measurement: time
+    unit: s
+    description: "100 meters sprint"
+    french_synonyms:
+      - "100m"
+      - "100 m"
+      - "100 mètres"
+      - "100 metres"
+    english_synonyms:
+      - "100m"
+      - "100 meters"
+      - "100 metre"
+
+  200m:
+    world_athletics_id: "200"
+    measurement: time
+    unit: s
+    description: "200 meters sprint"
+    french_synonyms:
+      - "200m"
+      - "200 m"
+      - "200 mètres"
+    english_synonyms:
+      - "200m"
+      - "200 meters"
+
+  400m:
+    world_athletics_id: "400"
+    measurement: time
+    unit: s
+    description: "400 meters sprint"
+    french_synonyms:
+      - "400m"
+      - "400 m"
+      - "400 mètres"
+    english_synonyms:
+      - "400m"
+      - "400 meters"
+
+  # Track events - Middle distance
+  800m:
+    world_athletics_id: "800"
+    measurement: time
+    unit: s
+    description: "800 meters"
+    french_synonyms:
+      - "800m"
+      - "800 m"
+      - "800 mètres"
+    english_synonyms:
+      - "800m"
+      - "800 meters"
+
+  1500m:
+    world_athletics_id: "1500"
+    measurement: time
+    unit: s
+    description: "1500 meters"
+    french_synonyms:
+      - "1500m"
+      - "1500 m"
+      - "1500 mètres"
+      - "mile"
+    english_synonyms:
+      - "1500m"
+      - "1500 meters"
+      - "1 mile"
+
+  # Track events - Long distance
+  5000m:
+    world_athletics_id: "5000"
+    measurement: time
+    unit: s
+    description: "5000 meters"
+    french_synonyms:
+      - "5000m"
+      - "5000 m"
+      - "5000 mètres"
+      - "5 km"
+    english_synonyms:
+      - "5000m"
+      - "5000 meters"
+      - "5 km"
+
+  10000m:
+    world_athletics_id: "10000"
+    measurement: time
+    unit: s
+    description: "10000 meters"
+    french_synonyms:
+      - "10000m"
+      - "10000 m"
+      - "10000 mètres"
+      - "10 km"
+    english_synonyms:
+      - "10000m"
+      - "10000 meters"
+      - "10 km"
+
+  marathon:
+    world_athletics_id: "MAR"
+    measurement: time
+    unit: s
+    description: "Marathon (42.195 km)"
+    french_synonyms:
+      - "marathon"
+      - "Marathon"
+      - "42 km"
+      - "42.195 km"
+    english_synonyms:
+      - "marathon"
+      - "Marathon"
+      - "42.195 km"
+
+  # Hurdles
+  100m_hurdles:
+    world_athletics_id: "100H"
+    measurement: time
+    unit: s
+    description: "100 meters hurdles (women)"
+    french_synonyms:
+      - "100 haies"
+      - "100mH"
+      - "100m haies"
+      - "100 mètres haies"
+    english_synonyms:
+      - "100m hurdles"
+      - "100mH"
+      - "100 metre hurdles"
+
+  110m_hurdles:
+    world_athletics_id: "110H"
+    measurement: time
+    unit: s
+    description: "110 meters hurdles (men)"
+    french_synonyms:
+      - "110 haies"
+      - "110mH"
+      - "110m haies"
+      - "110 mètres haies"
+    english_synonyms:
+      - "110m hurdles"
+      - "110mH"
+      - "110 metre hurdles"
+
+  400m_hurdles:
+    world_athletics_id: "400H"
+    measurement: time
+    unit: s
+    description: "400 meters hurdles"
+    french_synonyms:
+      - "400 haies"
+      - "400mH"
+      - "400m haies"
+      - "400 mètres haies"
+    english_synonyms:
+      - "400m hurdles"
+      - "400mH"
+      - "400 metre hurdles"
+
+  # Steeplechase
+  steeplechase_3000m:
+    world_athletics_id: "3000SC"
+    measurement: time
+    unit: s
+    description: "3000 meters steeplechase"
+    french_synonyms:
+      - "3000 steeple"
+      - "3000m steeple"
+      - "3000 m steeple"
+      - "steeple"
+      - "3000 obstacles"
+    english_synonyms:
+      - "3000m steeplechase"
+      - "3000m steeple"
+      - "steeplechase 3000m"
+
+  # Relays
+  relay_4x100m:
+    world_athletics_id: "4X100"
+    measurement: time
+    unit: s
+    description: "4x100 meters relay"
+    french_synonyms:
+      - "4x100"
+      - "4 x 100m"
+      - "relais 4x100"
+      - "relais 4x100m"
+    english_synonyms:
+      - "4x100m relay"
+      - "4x100m"
+      - "4 x 100m"
+
+  relay_4x400m:
+    world_athletics_id: "4X400"
+    measurement: time
+    unit: s
+    description: "4x400 meters relay"
+    french_synonyms:
+      - "4x400"
+      - "4 x 400m"
+      - "relais 4x400"
+      - "relais 4x400m"
+    english_synonyms:
+      - "4x400m relay"
+      - "4x400m"
+      - "4 x 400m"
+
+  # Field events - Jumps
+  high_jump:
+    world_athletics_id: "HJ"
+    measurement: distance
+    unit: m
+    description: "High jump"
+    french_synonyms:
+      - "saut en hauteur"
+      - "hauteur"
+      - "saut hauteur"
+      - "HJ"
+    english_synonyms:
+      - "high jump"
+      - "high-jump"
+      - "HJ"
+
+  long_jump:
+    world_athletics_id: "LJ"
+    measurement: distance
+    unit: m
+    description: "Long jump"
+    french_synonyms:
+      - "saut en longueur"
+      - "longueur"
+      - "saut longueur"
+      - "LJ"
+    english_synonyms:
+      - "long jump"
+      - "long-jump"
+      - "LJ"
+
+  triple_jump:
+    world_athletics_id: "TJ"
+    measurement: distance
+    unit: m
+    description: "Triple jump"
+    french_synonyms:
+      - "triple saut"
+      - "saut triple"
+      - "triple saut"
+      - "TJ"
+    english_synonyms:
+      - "triple jump"
+      - "triple-jump"
+      - "TJ"
+
+  pole_vault:
+    world_athletics_id: "PV"
+    measurement: distance
+    unit: m
+    description: "Pole vault"
+    french_synonyms:
+      - "saut à la perche"
+      - "perche"
+      - "saut perche"
+      - "PV"
+    english_synonyms:
+      - "pole vault"
+      - "pole-vault"
+      - "PV"
+
+  # Field events - Throws
+  shot_put:
+    world_athletics_id: "SP"
+    measurement: distance
+    unit: m
+    description: "Shot put"
+    french_synonyms:
+      - "lancer du poids"
+      - "poids"
+      - "lancer poids"
+      - "SP"
+    english_synonyms:
+      - "shot put"
+      - "shot-put"
+      - "SP"
+
+  discus:
+    world_athletics_id: "DT"
+    measurement: distance
+    unit: m
+    description: "Discus throw"
+    french_synonyms:
+      - "lancer du disque"
+      - "disque"
+      - "lancer disque"
+      - "DT"
+    english_synonyms:
+      - "discus"
+      - "discus throw"
+      - "DT"
+
+  hammer:
+    world_athletics_id: "HT"
+    measurement: distance
+    unit: m
+    description: "Hammer throw"
+    french_synonyms:
+      - "lancer du marteau"
+      - "marteau"
+      - "lancer marteau"
+      - "HT"
+    english_synonyms:
+      - "hammer"
+      - "hammer throw"
+      - "HT"
+
+  javelin:
+    world_athletics_id: "JT"
+    measurement: distance
+    unit: m
+    description: "Javelin throw"
+    french_synonyms:
+      - "lancer du javelot"
+      - "javelot"
+      - "lancer javelot"
+      - "JT"
+    english_synonyms:
+      - "javelin"
+      - "javelin throw"
+      - "JT"
+
+  # Combined events
+  decathlon:
+    world_athletics_id: "DEC"
+    measurement: points
+    unit: pts
+    description: "Decathlon (10 events)"
+    french_synonyms:
+      - "décathlon"
+      - "decathlon"
+    english_synonyms:
+      - "decathlon"
+
+  heptathlon:
+    world_athletics_id: "HEP"
+    measurement: points
+    unit: pts
+    description: "Heptathlon (7 events)"
+    french_synonyms:
+      - "heptathlon"
+    english_synonyms:
+      - "heptathlon"
