@@ -18,6 +18,11 @@ Built for the **Athletic Club du Lyonnais (ACL)**.
 - **Performance Catalogue** — Query, filter, rank, and analyze collections of performances
 - **Membership Tracking** — Track athlete club membership with active/inactive status
 
+### Data Quality & Transformation
+- **Event Mapping Validation** — Detect unrecognized events and validate raw→silver mappings
+- **Silver Layer Transformations** — Declarative YAML-based data corrections with full audit trail and reproducibility guarantee
+- **Transformation Manifests** — Track all corrections (who/what/when/why) in audit-ready format
+
 ### Scoring & Analytics
 - **World Athletics Scoring Tables** — Official 2025 scoring table lookup system with PDF-to-parquet conversion
 - **French Youth Categories** — BE and MI category scoring tables with automatic sex-based computation
@@ -135,6 +140,77 @@ print(metadata.world_athletics_id) # "LJ"
 if "100m" in registry:
     print("100m is registered")
 ```
+
+### Silver Layer Transformations
+
+Selectively correct performances during bronze→silver conversion with full reproducibility and audit trail:
+
+```python
+from athletics_performance import (
+    load_transformation_rules,
+    apply_transformations,
+    save_corrections_manifest,
+    verify_reproducibility,
+)
+import pandas as pd
+
+# Load bronze data (raw, immutable)
+df_bronze = pd.read_parquet("data/bronze/performances.parquet")
+
+# Define transformation rules in YAML
+yaml_rules = """
+transformations:
+  - rule_id: "fix_date_typo"
+    description: "Fix year typo in import batch"
+    applies_to:
+      selector: "perf_ids"
+      values: ["perf_001", "perf_002"]
+    corrections:
+      - field: "date"
+        new_value: "2026-03-15"
+    metadata:
+      reviewer: "John Doe"
+
+  - rule_id: "fix_timing_error"
+    description: "Fix timing system error (divide by 10)"
+    applies_to:
+      selector: "condition"
+      match:
+        - field: "location"
+          equals: "Paris"
+        - field: "result_value"
+          gt: 50
+    corrections:
+      - field: "result_value"
+        operation: "divide"
+        operand: 10.0
+    metadata:
+      reviewer: "Jane Smith"
+"""
+
+# Load and apply rules
+rules = load_transformation_rules(yaml_rules)
+df_silver, manifest = apply_transformations(df_bronze, rules)
+
+# Verify reproducibility (same input + rules = identical output)
+assert verify_reproducibility(df_bronze, rules, df_silver)
+
+# Save results
+df_silver.to_parquet("data/silver/performances.parquet")
+save_corrections_manifest(manifest, "data/silver/corrections_manifest.parquet")
+
+# Audit trail is preserved: who modified what, when, why
+print(manifest[["rule_id", "perf_id", "field", "old_value", "new_value", "reviewer"]])
+```
+
+Key benefits:
+- **Immutable Bronze** — Raw data never modified, stored for lineage
+- **Reproducible Transformations** — Apply same rules to get identical results
+- **Full Audit Trail** — Track every correction with reviewer, date, source document
+- **Declarative Rules** — Define corrections in YAML, stored with data (not in git)
+- **Flexible Selection** — Target specific performances or match complex conditions
+
+See [guide_transformations.rst](docs/guide_transformations.rst) for complete workflow documentation.
 
 ### Performance Records
 
@@ -341,6 +417,21 @@ See [STORAGE_CONFIGURATION.md](STORAGE_CONFIGURATION.md) for complete configurat
 | **S3DataStore** | AWS S3 storage backend for cloud deployments |
 | **PerformanceMedallion** | Medallion architecture manager (bronze/silver/gold layers) |
 
+### Data Quality & Transformations
+
+| Class/Function | Purpose |
+|--------|---------|
+| **Correction** | Single field correction specification (value, operation, operand) |
+| **TransformationRule** | Complete rule with selector, corrections, and audit metadata |
+| **CorrectionRecord** | Audit record of applied correction (who/what/when/why) |
+| **load_transformation_rules()** | Parse transformation rules from YAML |
+| **identify_performances()** | Select performances by perf_ids or complex conditions |
+| **apply_transformations()** | Apply all rules to bronze data, return silver + manifest |
+| **verify_reproducibility()** | Verify same bronze + rules = identical silver |
+| **save_corrections_manifest()** | Save audit trail to parquet |
+| **load_corrections_manifest()** | Load audit trail from parquet |
+| **report_transformations()** | Generate human-readable correction summary |
+
 ### Constants
 
 | Name | Purpose |
@@ -402,11 +493,20 @@ PerformanceImporter (fetch & parse)
        ↓
 Local/S3 Storage (data_store)
        ↓
-    Bronze Layer (raw, immutable)
+  Bronze Layer (raw, immutable)
        ↓
-  Transformations (dedupe, score, clean)
+Validate Event Mappings
+  ├─ Detect unrecognized events
+  └─ Apply custom mappings
        ↓
-    Silver Layer (processed, features)
+Silver Layer Transformations
+  ├─ Load transformation rules (YAML)
+  ├─ Target specific performances (perf_ids or conditions)
+  ├─ Apply corrections (replacement, divide, multiply)
+  ├─ Generate audit manifest (who/what/when/why)
+  └─ Verify reproducibility
+       ↓
+  Silver Layer (corrected, audited)
        ↓
    Aggregations (records, rankings)
        ↓
