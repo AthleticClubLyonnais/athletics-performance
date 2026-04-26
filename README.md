@@ -10,12 +10,28 @@ Built for the **Athletic Club du Lyonnais (ACL)**.
 
 ## Features
 
+### Core Data Models
 - **Athlete & Club Models** — Immutable dataclasses with automatic category computation and department/league derivation
 - **Event Catalog** — Pre-configured events with measurement types (time/distance)
+- **Event Registry** — Multilingual event synonym resolution (French, English, World Athletics codes)
 - **Performance Records** — Normalised performance data with automatic year-of-season computation
 - **Performance Catalogue** — Query, filter, rank, and analyze collections of performances
-- **World Athletics Scoring Tables** — Official 2025 scoring table lookup system with PDF-to-parquet conversion
 - **Membership Tracking** — Track athlete club membership with active/inactive status
+
+### Data Quality & Transformation
+- **Event Mapping Validation** — Detect unrecognized events and validate raw→silver mappings
+- **Silver Layer Transformations** — Declarative YAML-based data corrections with full audit trail and reproducibility guarantee
+- **Transformation Manifests** — Track all corrections (who/what/when/why) in audit-ready format
+
+### Scoring & Analytics
+- **World Athletics Scoring Tables** — Official 2025 scoring table lookup system with PDF-to-parquet conversion
+- **French Youth Categories** — BE and MI category scoring tables with automatic sex-based computation
+
+### Data Ingestion & Storage
+- **Performance Importers** — Extensible framework for importing from athle.fr and other sources
+- **Flexible Storage** — Local filesystem or AWS S3 storage for performance databases
+- **Medallion Architecture** — Bronze/silver/gold layered data processing with full lineage
+- **Duplicate Handling** — Smart strategies for managing duplicate imports (skip, replace, error, keep)
 
 ## Installation
 
@@ -100,6 +116,102 @@ print(jump.measurement)  # "distance"
 print(jump.unit)         # "m"
 ```
 
+### Event Registry
+
+Normalize event names from various sources (athle.fr French names, World Athletics codes, etc.) to canonical event IDs:
+
+```python
+from athletics_performance import EventRegistry
+
+registry = EventRegistry()
+
+# Resolve event synonyms to canonical IDs
+registry.resolve("longueur")       # French → "long_jump"
+registry.resolve("LJ")             # World Athletics code → "long_jump"
+registry.resolve("long jump")      # English → "long_jump"
+
+# Get event metadata
+metadata = registry.get_metadata("long_jump")
+print(metadata.measurement)        # "distance"
+print(metadata.unit)               # "m"
+print(metadata.world_athletics_id) # "LJ"
+
+# Check if event is recognized
+if "100m" in registry:
+    print("100m is registered")
+```
+
+### Silver Layer Transformations
+
+Selectively correct performances during bronze→silver conversion with full reproducibility and audit trail:
+
+```python
+from athletics_performance import (
+    load_transformation_rules,
+    apply_transformations,
+    save_corrections_manifest,
+    verify_reproducibility,
+)
+import pandas as pd
+
+# Load bronze data (raw, immutable)
+df_bronze = pd.read_parquet("data/bronze/performances.parquet")
+
+# Define transformation rules in YAML
+yaml_rules = """
+transformations:
+  - rule_id: "fix_date_typo"
+    description: "Fix year typo in import batch"
+    applies_to:
+      selector: "perf_ids"
+      values: ["perf_001", "perf_002"]
+    corrections:
+      - field: "date"
+        new_value: "2026-03-15"
+    metadata:
+      reviewer: "John Doe"
+
+  - rule_id: "fix_timing_error"
+    description: "Fix timing system error (divide by 10)"
+    applies_to:
+      selector: "condition"
+      match:
+        - field: "location"
+          equals: "Paris"
+        - field: "result_value"
+          gt: 50
+    corrections:
+      - field: "result_value"
+        operation: "divide"
+        operand: 10.0
+    metadata:
+      reviewer: "Jane Smith"
+"""
+
+# Load and apply rules
+rules = load_transformation_rules(yaml_rules)
+df_silver, manifest = apply_transformations(df_bronze, rules)
+
+# Verify reproducibility (same input + rules = identical output)
+assert verify_reproducibility(df_bronze, rules, df_silver)
+
+# Save results
+df_silver.to_parquet("data/silver/performances.parquet")
+save_corrections_manifest(manifest, "data/silver/corrections_manifest.parquet")
+
+# Audit trail is preserved: who modified what, when, why
+print(manifest[["rule_id", "perf_id", "field", "old_value", "new_value", "reviewer"]])
+```
+
+Key benefits:
+- **Immutable Bronze** — Raw data never modified, stored for lineage
+- **Reproducible Transformations** — Apply same rules to get identical results
+- **Full Audit Trail** — Track every correction with reviewer, date, source document
+- **Declarative Rules** — Define corrections in YAML, stored with data (not in git)
+- **Flexible Selection** — Target specific performances or match complex conditions
+
+See [guide_transformations.rst](docs/guide_transformations.rst) for complete workflow documentation.
+
 ### Performance Records
 
 ```python
@@ -177,6 +289,109 @@ points = tables.lookup(sex="M", event="100m", performance=12.34)
 print(points)  # World Athletics points for 12.34s in men's 100m
 ```
 
+### Data Ingestion from athle.fr
+
+Import performance data from the French athletics federation website:
+
+```python
+from athletics_performance.importers import AthleFrImporter
+from athletics_performance.storage import LocalDataStore
+
+# Setup storage (local or S3)
+store = LocalDataStore('/data/athletics')
+
+# Create importer
+importer = AthleFrImporter(data_store=store)
+
+# Import performances for a club
+importer.import_to_parquet(
+    club_id="069106",           # ACL club ID
+    season=2026,
+    handle_duplicates="skip"    # Skip if already imported
+)
+
+# Load and inspect
+df = importer.load_from_parquet('athle_fr_performances.parquet')
+print(f"Imported {len(df)} performances")
+
+# Add computed scores
+def add_scores(df):
+    df['wa_points'] = df['performance'].apply(compute_world_athletics_points)
+    return df
+
+importer.apply_transformation(
+    'athle_fr_performances.parquet',
+    add_scores,
+    'athle_fr_performances_scored.parquet'
+)
+```
+
+### Medallion Architecture: Bronze → Silver → Gold
+
+Organize performances across data layers for reproducibility and auditability:
+
+```python
+from athletics_performance.medallion import PerformanceMedallion
+
+medallion = PerformanceMedallion(store)
+
+# Bronze: Save raw imported data
+medallion.save_bronze(raw_df, 'ac_lyon_april_2026')
+
+# Silver: Process with transformations (dedupe, score, clean)
+medallion.process_pipeline(
+    bronze_name='ac_lyon_april_2026',
+    silver_name='ac_lyon_april_2026_processed',
+    transformations=[
+        lambda df: df.drop_duplicates(subset=['perf_id']),
+        lambda df: df.assign(score=df['perf'].apply(compute_score)),
+        lambda df: df[df['score'].notna()],  # Remove invalid scores
+    ]
+)
+
+# Gold: Create analytics-ready aggregations
+def club_records(df):
+    """Best performance per event."""
+    return df.loc[df.groupby('event_name')['result_value'].idxmin()]
+
+medallion.analytics_pipeline(
+    silver_name='ac_lyon_april_2026_processed',
+    gold_name='ac_lyon_records',
+    aggregation_func=club_records
+)
+
+# Load analytics data for dashboards
+records = medallion.load_gold('ac_lyon_records')
+```
+
+## Storage & Configuration
+
+Store performance databases outside the package, with support for local or cloud storage:
+
+```python
+from athletics_performance.storage import LocalDataStore, S3DataStore
+
+# Local storage (development)
+local_store = LocalDataStore('/data/athletics')
+
+# AWS S3 (cloud/team collaboration)
+s3_store = S3DataStore(
+    bucket='my-bucket',
+    prefix='performances',
+    region_name='eu-west-1'
+)
+```
+
+Or configure via environment variables:
+
+```bash
+export ATHLETICS_STORAGE_TYPE=s3
+export ATHLETICS_S3_BUCKET=my-bucket
+export ATHLETICS_S3_PREFIX=performances
+```
+
+See [STORAGE_CONFIGURATION.md](STORAGE_CONFIGURATION.md) for complete configuration guide and [ARCHITECTURE_RECOMMENDATIONS.md](ARCHITECTURE_RECOMMENDATIONS.md) for data engineering best practices.
+
 ## API Reference
 
 ### Core Classes
@@ -191,6 +406,32 @@ print(points)  # World Athletics points for 12.34s in men's 100m
 | **ClubMembership** | Track athlete membership in a club with active/inactive status |
 | **ScoringTables** | World Athletics 2025 scoring table lookups |
 
+### Data Ingestion & Storage
+
+| Class | Purpose |
+|-------|---------|
+| **PerformanceImporter** | Abstract base class for importing performances from external sources |
+| **AthleFrImporter** | Concrete importer for athle.fr French athletics federation website |
+| **DataStore** | Abstract storage backend interface |
+| **LocalDataStore** | Local filesystem storage backend |
+| **S3DataStore** | AWS S3 storage backend for cloud deployments |
+| **PerformanceMedallion** | Medallion architecture manager (bronze/silver/gold layers) |
+
+### Data Quality & Transformations
+
+| Class/Function | Purpose |
+|--------|---------|
+| **Correction** | Single field correction specification (value, operation, operand) |
+| **TransformationRule** | Complete rule with selector, corrections, and audit metadata |
+| **CorrectionRecord** | Audit record of applied correction (who/what/when/why) |
+| **load_transformation_rules()** | Parse transformation rules from YAML |
+| **identify_performances()** | Select performances by perf_ids or complex conditions |
+| **apply_transformations()** | Apply all rules to bronze data, return silver + manifest |
+| **verify_reproducibility()** | Verify same bronze + rules = identical silver |
+| **save_corrections_manifest()** | Save audit trail to parquet |
+| **load_corrections_manifest()** | Load audit trail from parquet |
+| **report_transformations()** | Generate human-readable correction summary |
+
 ### Constants
 
 | Name | Purpose |
@@ -198,7 +439,9 @@ print(points)  # World Athletics points for 12.34s in men's 100m
 | **EVENT_CATALOG** | Pre-configured dictionary of standard athletics events |
 | **DEPARTMENT_TO_LIGUE** | Mapping from French department codes to league codes and names |
 
-## Data Model
+## System Architecture
+
+### Data Model
 
 ```
 athletes
@@ -240,6 +483,39 @@ performances
   ├─ category_snapshot
   └─ notes
 ```
+
+### Data Ingestion Pipeline
+
+```
+External Source (athle.fr)
+       ↓
+PerformanceImporter (fetch & parse)
+       ↓
+Local/S3 Storage (data_store)
+       ↓
+  Bronze Layer (raw, immutable)
+       ↓
+Validate Event Mappings
+  ├─ Detect unrecognized events
+  └─ Apply custom mappings
+       ↓
+Silver Layer Transformations
+  ├─ Load transformation rules (YAML)
+  ├─ Target specific performances (perf_ids or conditions)
+  ├─ Apply corrections (replacement, divide, multiply)
+  ├─ Generate audit manifest (who/what/when/why)
+  └─ Verify reproducibility
+       ↓
+  Silver Layer (corrected, audited)
+       ↓
+   Aggregations (records, rankings)
+       ↓
+    Gold Layer (analytics-ready)
+       ↓
+PerformanceCatalogue / Visualization
+```
+
+For detailed architecture information, see [ARCHITECTURE_RECOMMENDATIONS.md](ARCHITECTURE_RECOMMENDATIONS.md)
 
 ## Development
 

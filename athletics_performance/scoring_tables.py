@@ -1,15 +1,17 @@
 """
-ScoringTables: World Athletics scoring tables from official PDF.
+Scoring tables: abstract base and category-specific implementations.
 
-This module provides a table-based lookup system for World Athletics points scores,
-backed by the official World Athletics Scoring Tables 2025 PDF (846 pages, 28 sections).
+This module provides a hierarchical system for different athletics scoring tables,
+each applicable to specific athlete categories (age groups).
 
-The PDF is parsed once into a local parquet file via build_from_pdf(), then used
-for all lookups at runtime.
+- `ScoringTable`: Abstract base class for all scoring tables.
+- `WorldAthletics2025ScoringTable`: Official World Athletics 2025 tables (senior categories).
+- `ScoringTableResolver`: Factory to select the appropriate table for an athlete's category.
 """
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Optional
 
@@ -65,25 +67,122 @@ _DISTANCE_PREFIXES = frozenset(
 )
 
 
-class ScoringTables:
+class ScoringTable(ABC):
     """
-    World Athletics points scoring tables (2025 edition).
+    Abstract base class for athletics scoring tables.
 
-    Use build_from_pdf() once to parse the PDF into a local parquet file,
-    then load() to create a ScoringTables instance for point lookups.
+    Each subclass represents a scoring system applicable to specific athlete
+    categories (age groups, gender).
+
+    Subclasses must implement:
+    - score(): Return points for a performance
+    - performance_for_points(): Return required performance for a points level
+    - available_events(): List available events
+    """
+
+    @property
+    @abstractmethod
+    def applicable_categories(self) -> frozenset[str]:
+        """
+        Categories (age groups) this scoring table applies to.
+
+        Returns
+        -------
+        frozenset[str]
+            Set of category codes (e.g., {"CA", "JU", "ES", "SE", "M", "M0", "M1", ...}).
+        """
+        pass
+
+    @abstractmethod
+    def score(self, sex: str, event_id: str, performance: float) -> int:
+        """
+        Return points for a given performance.
+
+        Parameters
+        ----------
+        sex : {"M", "W"}
+            Athlete sex.
+        event_id : str
+            Event identifier (e.g., "100m", "LJ").
+        performance : float
+            Performance value in standard units (seconds or metres).
+
+        Returns
+        -------
+        int
+            Points awarded. Returns 0 if performance does not qualify.
+        """
+        pass
+
+    @abstractmethod
+    def performance_for_points(self, sex: str, event_id: str, points: int) -> float:
+        """
+        Return the minimum performance required for a given points level.
+
+        Parameters
+        ----------
+        sex : {"M", "W"}
+            Athlete sex.
+        event_id : str
+            Event identifier.
+        points : int
+            Points level.
+
+        Returns
+        -------
+        float
+            Minimum performance (seconds or metres).
+
+        Raises
+        ------
+        ValueError
+            If no data exists for the given points level.
+        """
+        pass
+
+    @abstractmethod
+    def available_events(self, sex: str | None = None) -> list[str]:
+        """
+        List all available events.
+
+        Parameters
+        ----------
+        sex : {"M", "W"}, optional
+            Filter by sex. If None, return all.
+
+        Returns
+        -------
+        list[str]
+            Sorted list of event identifiers.
+        """
+        pass
+
+    @staticmethod
+    def _is_time_event(event_id: str) -> bool:
+        """Determine if an event is time-based (lower is better)."""
+        for prefix in _DISTANCE_PREFIXES:
+            if event_id.startswith(prefix):
+                return False
+        return True
+
+
+class WorldAthletics2025ScoringTable(ScoringTable):
+    """
+    Official World Athletics 2025 scoring tables.
+
+    Applicable to senior categories: CA (16–17), JU (18–19), ES (20–22),
+    SE (23–34), and M (35+, broken down into 5-year brackets: M0, M1, ..., M9).
 
     Parameters
     ----------
     df : pd.DataFrame
-        Loaded scoring table with columns: sex, event, points, performance.
-
-    Attributes
-    ----------
-    DATA_PATH : Path
-        Default parquet file path.
-    PDF_PATH : Path
-        Default PDF file path.
+        Loaded table with columns: sex, event, points, performance.
     """
+
+    # Senior categories for which WA tables apply
+    _APPLICABLE = frozenset(
+        ["CA", "JU", "ES", "SE", "M", "M0", "M1", "M2", "M3", "M4", "M5", "M6", "M7", "M8", "M9"]
+    )
 
     DATA_PATH = (
         Path(__file__).parent / "data" / "world_athletics_scoring_tables_2025.parquet"
@@ -94,6 +193,11 @@ class ScoringTables:
 
     def __init__(self, df: pd.DataFrame) -> None:
         self._df = df
+
+    @property
+    def applicable_categories(self) -> frozenset[str]:
+        """World Athletics tables apply to all senior categories."""
+        return self._APPLICABLE
 
     @classmethod
     def build_from_pdf(cls, pdf_path: Optional[Path] = None) -> None:
@@ -135,24 +239,24 @@ class ScoringTables:
         df.to_parquet(cls.DATA_PATH, index=False)
 
     @classmethod
-    def load(cls) -> ScoringTables:
+    def load(cls) -> WorldAthletics2025ScoringTable:
         """
         Load scoring tables from parquet into memory.
 
         Returns
         -------
-        ScoringTables
-            Ready-to-use scoring tables instance.
+        WorldAthletics2025ScoringTable
+            Ready-to-use instance.
 
         Raises
         ------
         FileNotFoundError
-            If parquet file does not exist. Run build_from_pdf() first.
+            If parquet file does not exist.
         """
         if not cls.DATA_PATH.exists():
             raise FileNotFoundError(
                 f"Parquet file not found at {cls.DATA_PATH}. "
-                "Run ScoringTables.build_from_pdf() first."
+                "Run WorldAthletics2025ScoringTable.build_from_pdf() first."
             )
         df = pd.read_parquet(cls.DATA_PATH)
         return cls(df)
@@ -161,25 +265,22 @@ class ScoringTables:
         """
         Return World Athletics points for a given performance.
 
-        For time events (sprints, hurdles, distance running), lower is better;
-        returns the highest points level that the performance qualifies for.
-
-        For distance events (jumps, throws) and combined events, higher is better;
-        returns the highest points level the performance achieves.
+        For time events, lower is better; returns highest points the performance qualifies for.
+        For distance events, higher is better.
 
         Parameters
         ----------
         sex : {"M", "W"}
             Athlete sex.
         event_id : str
-            Event identifier (e.g. "100m", "LJ", "200m_sh").
+            Event identifier (e.g., "100m", "LJ", "200m_sh").
         performance : float
             Performance value in standard units (seconds for time, metres for distance).
 
         Returns
         -------
         int
-            World Athletics points. Returns 0 if performance is below the minimum threshold.
+            World Athletics points. Returns 0 if performance is below minimum.
         """
         mask = (self._df["sex"] == sex) & (self._df["event"] == event_id)
         event_df = self._df[mask]
@@ -220,8 +321,7 @@ class ScoringTables:
         Raises
         ------
         ValueError
-            If no performance data exists for the given points or any higher
-            points value for the (sex, event_id) combination.
+            If no performance data exists for the given points or higher.
         """
         event_df = self._df[(self._df["sex"] == sex) & (self._df["event"] == event_id)]
         mask = event_df["points"] == points
@@ -237,14 +337,14 @@ class ScoringTables:
 
         return float(row.iloc[0]["performance"])
 
-    def available_events(self, sex: str = None) -> list[str]:
+    def available_events(self, sex: str | None = None) -> list[str]:
         """
-        List all available event identifiers.
+        List all available events.
 
         Parameters
         ----------
         sex : {"M", "W"}, optional
-            Filter by athlete sex. If None, returns all events.
+            Filter by sex. If None, returns all.
 
         Returns
         -------
@@ -255,19 +355,6 @@ class ScoringTables:
         if sex is not None:
             df = df[df["sex"] == sex]
         return sorted(df["event"].unique().tolist())
-
-    @staticmethod
-    def _is_time_event(event_id: str) -> bool:
-        """
-        Determine if an event is time-based (lower is better) or not.
-
-        Jumps, throws, and combined events have a distance/points prefix.
-        All other events are time events.
-        """
-        for prefix in _DISTANCE_PREFIXES:
-            if event_id.startswith(prefix):
-                return False
-        return True
 
     @classmethod
     def _parse_page(cls, page, sex: str) -> list[tuple]:
@@ -495,3 +582,391 @@ class ScoringTables:
             return hours * 3600 + minutes * 60 + seconds
 
         return float(s)
+
+
+class ScoringTableResolver:
+    """
+    Factory to resolve and select the appropriate scoring table for an athlete category.
+
+    Currently supports:
+    - World Athletics 2025 (senior categories: CA, JU, ES, SE, M, M0–M9)
+    - Placeholders for youth categories (BE, MI)
+    """
+
+    _tables: dict[str, ScoringTable] = {}
+
+    @classmethod
+    def register(cls, table: ScoringTable) -> None:
+        """Register a scoring table."""
+        for category in table.applicable_categories:
+            cls._tables[category] = table
+
+    @classmethod
+    def get(cls, category: str) -> ScoringTable | None:
+        """
+        Get the scoring table for a given category.
+
+        Parameters
+        ----------
+        category : str
+            Category code with optional sex suffix (e.g., "CA", "CAM", "JU", "SEM", "BE", "BEF", "MI", "MIM").
+            Sex suffixes ("M" for male, "F" for female) are stripped automatically.
+
+        Returns
+        -------
+        ScoringTable or None
+            The applicable scoring table, or None if not available.
+        """
+        # Strip sex suffix if present (last char is M or F)
+        if category and category[-1] in ("M", "F"):
+            base_category = category[:-1]
+        else:
+            base_category = category
+        return cls._tables.get(base_category)
+
+    @classmethod
+    def _init_default(cls) -> None:
+        """Initialize default tables (lazy-loaded on first access)."""
+        if not cls._tables:
+            cls.register(WorldAthletics2025ScoringTable.load())
+
+
+class BEYouthScoringTable(ScoringTable):
+    """
+    French youth scoring tables for BE category (14–15 years old).
+
+    Combines BEM (boys) and BEF (girls) scoring tables from
+    2025-2028_pointjeunes_bem.pdf and 2025-2028_pointjeunes_bef.pdf.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Loaded table with columns: sex, event, points, performance.
+    """
+
+    _APPLICABLE = frozenset(["BE"])
+
+    def __init__(self, df: pd.DataFrame) -> None:
+        self._df = df
+
+    @property
+    def applicable_categories(self) -> frozenset[str]:
+        """BE tables apply to 14–15 year-old athletes."""
+        return self._APPLICABLE
+
+    @classmethod
+    def build_from_pdfs(
+        cls,
+        bem_path: Optional[Path] = None,
+        bef_path: Optional[Path] = None,
+    ) -> BEYouthScoringTable:
+        """
+        Parse BE youth PDFs and create a scoring table.
+
+        Parameters
+        ----------
+        bem_path : Path, optional
+            Path to BEM (boys) PDF. Defaults to data/2025-2028_pointjeunes_bem.pdf.
+        bef_path : Path, optional
+            Path to BEF (girls) PDF. Defaults to data/2025-2028_pointjeunes_bef.pdf.
+
+        Returns
+        -------
+        BEYouthScoringTable
+            Ready-to-use instance.
+        """
+        data_dir = Path(__file__).parent / "data"
+        bem_path = bem_path or data_dir / "2025-2028_pointjeunes_bem.pdf"
+        bef_path = bef_path or data_dir / "2025-2028_pointjeunes_bef.pdf"
+
+        records = []
+        records.extend(cls._parse_pdf(bem_path, "M"))
+        records.extend(cls._parse_pdf(bef_path, "W"))
+
+        df = pd.DataFrame(records, columns=["sex", "event", "points", "performance"])
+        df["points"] = df["points"].astype("int16")
+        df["performance"] = df["performance"].astype("float32")
+        return cls(df)
+
+    @classmethod
+    def _parse_pdf(cls, pdf_path: Path, sex: str) -> list[tuple]:
+        """
+        Parse a BE youth PDF and extract (sex, event, points, performance) records.
+
+        Parameters
+        ----------
+        pdf_path : Path
+            Path to PDF file.
+        sex : {"M", "W"}
+            Athlete sex.
+
+        Returns
+        -------
+        list[tuple]
+            List of (sex, event_id, points, performance_float) tuples.
+        """
+        import pdfplumber
+
+        records = []
+        with pdfplumber.open(pdf_path) as pdf:
+            for page in pdf.pages:
+                tables = page.extract_tables()
+                if not tables:
+                    continue
+                table = tables[0]
+
+                # Skip empty tables
+                if len(table) < 2:
+                    continue
+
+                # First row is header with event names
+                header = table[0]
+                events = [cls._normalize_event_name(h) for h in header[1:-1]]
+
+                # Remaining rows are points with corresponding performances
+                for row_idx in range(1, len(table)):
+                    try:
+                        points = int(table[row_idx][0])
+                    except (ValueError, TypeError, IndexError):
+                        continue
+
+                    # Parse performances for each event
+                    for col_idx, event in enumerate(events, start=1):
+                        if col_idx >= len(table[row_idx]):
+                            continue
+
+                        perf_str = table[row_idx][col_idx]
+                        if perf_str is None or perf_str in ("", "-", "–"):
+                            continue
+
+                        try:
+                            perf_float = cls._parse_performance(perf_str)
+                            records.append((sex, event, points, perf_float))
+                        except (ValueError, TypeError):
+                            continue
+
+        return records
+
+    @staticmethod
+    def _normalize_event_name(event_str: str) -> str:
+        """Normalize event name from PDF header."""
+        if not event_str:
+            return ""
+        # Clean up newlines and extra spaces, remove parenthetical notes
+        event = event_str.replace("\n", " ").strip()
+        # Remove weights/distances in parens: "Poids (3 Kg)" → "Poids"
+        event = event.split("(")[0].strip()
+        # Replace common spacing issues
+        event = " ".join(event.split())
+        return event
+
+    @staticmethod
+    def _parse_performance(perf_str: str) -> float:
+        """Convert performance string to float."""
+        s = str(perf_str).strip().replace(",", ".")
+        if ":" in s:
+            parts = s.split(":")
+            seconds = float(parts[-1])
+            minutes = int(parts[-2])
+            hours = int(parts[0]) if len(parts) == 3 else 0
+            return hours * 3600 + minutes * 60 + seconds
+        return float(s)
+
+    def score(self, sex: str, event_id: str, performance: float) -> int:
+        """
+        Return BE youth points for a given performance.
+
+        Parameters
+        ----------
+        sex : {"M", "W"}
+            Athlete sex.
+        event_id : str
+            Event identifier.
+        performance : float
+            Performance value.
+
+        Returns
+        -------
+        int
+            Points awarded. Returns 0 if performance does not qualify.
+        """
+        mask = (self._df["sex"] == sex) & (self._df["event"] == event_id)
+        event_df = self._df[mask]
+
+        if event_df.empty:
+            return 0
+
+        is_time = self._is_time_event(event_id)
+
+        if is_time:
+            valid = event_df[event_df["performance"] >= performance]
+        else:
+            valid = event_df[event_df["performance"] <= performance]
+
+        if valid.empty:
+            return 0
+
+        return int(valid["points"].max())
+
+    def performance_for_points(self, sex: str, event_id: str, points: int) -> float:
+        """
+        Return the minimum performance required for a given points level.
+
+        Parameters
+        ----------
+        sex : {"M", "W"}
+            Athlete sex.
+        event_id : str
+            Event identifier.
+        points : int
+            Points level.
+
+        Returns
+        -------
+        float
+            Minimum performance.
+
+        Raises
+        ------
+        ValueError
+            If no data exists for the given points.
+        """
+        event_df = self._df[(self._df["sex"] == sex) & (self._df["event"] == event_id)]
+        row = event_df[event_df["points"] == points]
+
+        if row.empty:
+            raise ValueError(
+                f"No performance data for {sex} {event_id} at {points} points."
+            )
+
+        return float(row.iloc[0]["performance"])
+
+    def available_events(self, sex: str | None = None) -> list[str]:
+        """List all available events."""
+        df = self._df
+        if sex is not None:
+            df = df[df["sex"] == sex]
+        return sorted(df["event"].unique().tolist())
+
+
+class MIYouthScoringTable(ScoringTable):
+    """
+    French youth scoring tables for MI category (10–11 years old).
+
+    Combines MIM (boys) and MIF (girls) scoring tables from
+    2025-2028_pointjeunes_mim.pdf and 2025-2028_pointjeunes_mif.pdf.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Loaded table with columns: sex, event, points, performance.
+    """
+
+    _APPLICABLE = frozenset(["MI"])
+
+    def __init__(self, df: pd.DataFrame) -> None:
+        self._df = df
+
+    @property
+    def applicable_categories(self) -> frozenset[str]:
+        """MI tables apply to 10–11 year-old athletes."""
+        return self._APPLICABLE
+
+    @classmethod
+    def build_from_pdfs(
+        cls,
+        mim_path: Optional[Path] = None,
+        mif_path: Optional[Path] = None,
+    ) -> MIYouthScoringTable:
+        """
+        Parse MI youth PDFs and create a scoring table.
+
+        Parameters
+        ----------
+        mim_path : Path, optional
+            Path to MIM (boys) PDF. Defaults to data/2025-2028_pointjeunes_mim.pdf.
+        mif_path : Path, optional
+            Path to MIF (girls) PDF. Defaults to data/2025-2028_pointjeunes_mif.pdf.
+
+        Returns
+        -------
+        MIYouthScoringTable
+            Ready-to-use instance.
+        """
+        data_dir = Path(__file__).parent / "data"
+        mim_path = mim_path or data_dir / "2025-2028_pointjeunes_mim.pdf"
+        mif_path = mif_path or data_dir / "2025-2028_pointjeunes_mif.pdf"
+
+        records = []
+        records.extend(BEYouthScoringTable._parse_pdf(mim_path, "M"))
+        records.extend(BEYouthScoringTable._parse_pdf(mif_path, "W"))
+
+        df = pd.DataFrame(records, columns=["sex", "event", "points", "performance"])
+        df["points"] = df["points"].astype("int16")
+        df["performance"] = df["performance"].astype("float32")
+        return cls(df)
+
+    def score(self, sex: str, event_id: str, performance: float) -> int:
+        """Return MI youth points for a given performance."""
+        mask = (self._df["sex"] == sex) & (self._df["event"] == event_id)
+        event_df = self._df[mask]
+
+        if event_df.empty:
+            return 0
+
+        is_time = self._is_time_event(event_id)
+
+        if is_time:
+            valid = event_df[event_df["performance"] >= performance]
+        else:
+            valid = event_df[event_df["performance"] <= performance]
+
+        if valid.empty:
+            return 0
+
+        return int(valid["points"].max())
+
+    def performance_for_points(self, sex: str, event_id: str, points: int) -> float:
+        """Return the minimum performance required for a given points level."""
+        event_df = self._df[(self._df["sex"] == sex) & (self._df["event"] == event_id)]
+        row = event_df[event_df["points"] == points]
+
+        if row.empty:
+            raise ValueError(
+                f"No performance data for {sex} {event_id} at {points} points."
+            )
+
+        return float(row.iloc[0]["performance"])
+
+    def available_events(self, sex: str | None = None) -> list[str]:
+        """List all available events."""
+        df = self._df
+        if sex is not None:
+            df = df[df["sex"] == sex]
+        return sorted(df["event"].unique().tolist())
+
+
+# Lazy initialization on first import
+def _init_scoring_tables():
+    """Initialize all scoring tables."""
+    try:
+        ScoringTableResolver.register(WorldAthletics2025ScoringTable.load())
+    except FileNotFoundError:
+        pass  # Parquet not yet generated
+
+    try:
+        ScoringTableResolver.register(BEYouthScoringTable.build_from_pdfs())
+    except Exception:
+        pass  # PDFs not available or parsing failed
+
+    try:
+        ScoringTableResolver.register(MIYouthScoringTable.build_from_pdfs())
+    except Exception:
+        pass  # PDFs not available or parsing failed
+
+
+_init_scoring_tables()
+
+
+# Backward compatibility: ScoringTables alias for WorldAthletics2025ScoringTable
+ScoringTables = WorldAthletics2025ScoringTable
