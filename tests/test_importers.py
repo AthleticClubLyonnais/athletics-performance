@@ -66,6 +66,272 @@ class TestPerformanceImporter:
             assert loaded.shape == (3, 1)
             assert list(loaded["col1"]) == [1, 2, 3]
 
+    def test_handle_duplicates_skip(self) -> None:
+        """Duplicate performances are skipped when handle_duplicates='skip'."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data_dir = Path(tmpdir)
+
+            class ConcreteImporter(PerformanceImporter):
+                def __init__(self, data_dir, call_count=0):
+                    super().__init__(data_dir)
+                    self.call_count = call_count
+
+                @property
+                def source_name(self) -> str:
+                    return "test"
+
+                def fetch_data(self, **kwargs) -> pd.DataFrame:
+                    # Return different data each call
+                    if self.call_count == 0:
+                        return pd.DataFrame({
+                            "perf_id": ["P1", "P2"],
+                            "value": [10, 20],
+                        })
+                    else:
+                        return pd.DataFrame({
+                            "perf_id": ["P2", "P3"],  # P2 is duplicate
+                            "value": [20, 30],
+                        })
+
+                def parse_performances(self, df: pd.DataFrame) -> pd.DataFrame:
+                    return df
+
+            importer = ConcreteImporter(data_dir)
+
+            # First import
+            importer.import_to_parquet(
+                "test_data.parquet",
+                handle_duplicates="skip"
+            )
+
+            # Second import with duplicate P2
+            importer.call_count = 1
+            importer.import_to_parquet(
+                "test_data.parquet",
+                handle_duplicates="skip"
+            )
+
+            # Check result - should have P1, P2, P3 but not duplicate P2
+            loaded = importer.load_from_parquet("test_data.parquet")
+            assert len(loaded) == 3
+            assert set(loaded["perf_id"]) == {"P1", "P2", "P3"}
+
+    def test_handle_duplicates_replace(self) -> None:
+        """Duplicate performances are replaced when handle_duplicates='replace'."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data_dir = Path(tmpdir)
+
+            class ConcreteImporter(PerformanceImporter):
+                def __init__(self, data_dir, call_count=0):
+                    super().__init__(data_dir)
+                    self.call_count = call_count
+
+                @property
+                def source_name(self) -> str:
+                    return "test"
+
+                def fetch_data(self, **kwargs) -> pd.DataFrame:
+                    if self.call_count == 0:
+                        return pd.DataFrame({
+                            "perf_id": ["P1", "P2"],
+                            "value": [10, 20],
+                        })
+                    else:
+                        return pd.DataFrame({
+                            "perf_id": ["P2"],  # Replace P2
+                            "value": [999],
+                        })
+
+                def parse_performances(self, df: pd.DataFrame) -> pd.DataFrame:
+                    return df
+
+            importer = ConcreteImporter(data_dir)
+
+            # First import
+            importer.import_to_parquet(
+                "test_data.parquet",
+                handle_duplicates="skip"
+            )
+
+            # Second import replacing P2
+            importer.call_count = 1
+            importer.import_to_parquet(
+                "test_data.parquet",
+                handle_duplicates="replace"
+            )
+
+            loaded = importer.load_from_parquet("test_data.parquet")
+            p2_row = loaded[loaded["perf_id"] == "P2"]
+            assert p2_row["value"].iloc[0] == 999
+
+    def test_handle_duplicates_error(self) -> None:
+        """ValueError raised when duplicates found with handle_duplicates='error'."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data_dir = Path(tmpdir)
+
+            class ConcreteImporter(PerformanceImporter):
+                def __init__(self, data_dir, call_count=0):
+                    super().__init__(data_dir)
+                    self.call_count = call_count
+
+                @property
+                def source_name(self) -> str:
+                    return "test"
+
+                def fetch_data(self, **kwargs) -> pd.DataFrame:
+                    if self.call_count == 0:
+                        return pd.DataFrame({
+                            "perf_id": ["P1", "P2"],
+                            "value": [10, 20],
+                        })
+                    else:
+                        return pd.DataFrame({
+                            "perf_id": ["P2", "P3"],
+                            "value": [20, 30],
+                        })
+
+                def parse_performances(self, df: pd.DataFrame) -> pd.DataFrame:
+                    return df
+
+            importer = ConcreteImporter(data_dir)
+
+            # First import
+            importer.import_to_parquet(
+                "test_data.parquet",
+                handle_duplicates="skip"
+            )
+
+            # Second import should error on duplicates
+            importer.call_count = 1
+            with pytest.raises(ValueError, match="Found .* duplicate"):
+                importer.import_to_parquet(
+                    "test_data.parquet",
+                    handle_duplicates="error"
+                )
+
+    def test_apply_transformation(self) -> None:
+        """Transformations can be applied to stored performances."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data_dir = Path(tmpdir)
+
+            class ConcreteImporter(PerformanceImporter):
+                @property
+                def source_name(self) -> str:
+                    return "test"
+
+                def fetch_data(self, **kwargs) -> pd.DataFrame:
+                    return pd.DataFrame({"value": [1, 2, 3]})
+
+                def parse_performances(self, df: pd.DataFrame) -> pd.DataFrame:
+                    return df
+
+            importer = ConcreteImporter(data_dir)
+            importer.import_to_parquet("test_data.parquet")
+
+            # Apply transformation
+            def double_values(df: pd.DataFrame) -> pd.DataFrame:
+                df["value"] = df["value"] * 2
+                return df
+
+            importer.apply_transformation(
+                "test_data.parquet",
+                double_values
+            )
+
+            loaded = importer.load_from_parquet("test_data.parquet")
+            assert list(loaded["value"]) == [2, 4, 6]
+
+    def test_apply_transformation_add_column(self) -> None:
+        """Transformations can add new columns to stored data."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data_dir = Path(tmpdir)
+
+            class ConcreteImporter(PerformanceImporter):
+                @property
+                def source_name(self) -> str:
+                    return "test"
+
+                def fetch_data(self, **kwargs) -> pd.DataFrame:
+                    return pd.DataFrame({
+                        "perf_id": ["P1", "P2"],
+                        "performance": ["10.5", "11.2"],
+                    })
+
+                def parse_performances(self, df: pd.DataFrame) -> pd.DataFrame:
+                    return df
+
+            importer = ConcreteImporter(data_dir)
+            importer.import_to_parquet("test_data.parquet")
+
+            # Add computed column
+            def add_scores(df: pd.DataFrame) -> pd.DataFrame:
+                df["score"] = df["performance"].astype(float).apply(lambda x: int(1000 / x))
+                return df
+
+            importer.apply_transformation(
+                "test_data.parquet",
+                add_scores
+            )
+
+            loaded = importer.load_from_parquet("test_data.parquet")
+            assert "score" in loaded.columns
+            assert loaded["score"].iloc[0] > 0
+
+    def test_get_duplicates(self) -> None:
+        """Duplicate performances can be identified."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data_dir = Path(tmpdir)
+
+            class ConcreteImporter(PerformanceImporter):
+                @property
+                def source_name(self) -> str:
+                    return "test"
+
+                def fetch_data(self, **kwargs) -> pd.DataFrame:
+                    return pd.DataFrame({
+                        "perf_id": ["P1", "P2", "P2", "P3"],
+                        "value": [10, 20, 20, 30],
+                    })
+
+                def parse_performances(self, df: pd.DataFrame) -> pd.DataFrame:
+                    return df
+
+            importer = ConcreteImporter(data_dir)
+            importer.import_to_parquet("test_data.parquet", handle_duplicates="keep")
+
+            duplicates = importer.get_duplicates("test_data.parquet")
+            assert len(duplicates) == 2  # Both P2 entries
+            assert all(duplicates["perf_id"] == "P2")
+
+    def test_deduplicate(self) -> None:
+        """Duplicate performances can be removed."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data_dir = Path(tmpdir)
+
+            class ConcreteImporter(PerformanceImporter):
+                @property
+                def source_name(self) -> str:
+                    return "test"
+
+                def fetch_data(self, **kwargs) -> pd.DataFrame:
+                    return pd.DataFrame({
+                        "perf_id": ["P1", "P2", "P2", "P3"],
+                        "value": [10, 20, 25, 30],
+                    })
+
+                def parse_performances(self, df: pd.DataFrame) -> pd.DataFrame:
+                    return df
+
+            importer = ConcreteImporter(data_dir)
+            importer.import_to_parquet("test_data.parquet", handle_duplicates="keep")
+
+            # Keep first occurrence
+            importer.deduplicate("test_data.parquet", keep="first")
+            loaded = importer.load_from_parquet("test_data.parquet")
+            assert len(loaded) == 3
+            p2_row = loaded[loaded["perf_id"] == "P2"]
+            assert p2_row["value"].iloc[0] == 20  # First occurrence
+
 
 class TestAthleFrImporter:
     """Tests for the athle.fr performance importer."""
