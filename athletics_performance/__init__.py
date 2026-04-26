@@ -25,6 +25,19 @@ from .scoring_tables import (
     ScoringTables,
     WorldAthletics2025ScoringTable,
 )
+from .transformations import (
+    Correction,
+    TransformationRule,
+    CorrectionRecord,
+    load_transformation_rules,
+    identify_performances,
+    apply_correction,
+    apply_transformations,
+    save_corrections_manifest,
+    load_corrections_manifest,
+    report_transformations,
+    verify_reproducibility,
+)
 
 __description__ = "Athletics performance scoring and conversion tools"
 
@@ -54,4 +67,15 @@ __all__ = [
     "WorldAthletics2025ScoringTable",
     "EVENT_CATALOG",
     "DEPARTMENT_TO_LIGUE",
+    "Correction",
+    "TransformationRule",
+    "CorrectionRecord",
+    "load_transformation_rules",
+    "identify_performances",
+    "apply_correction",
+    "apply_transformations",
+    "save_corrections_manifest",
+    "load_corrections_manifest",
+    "report_transformations",
+    "verify_reproducibility",
 ]
