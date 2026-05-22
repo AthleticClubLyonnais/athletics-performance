@@ -1,7 +1,8 @@
 """Importer for performances from athle.fr website."""
 
+import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import pandas as pd
 import requests
@@ -19,7 +20,12 @@ class AthleFrImporter(PerformanceImporter):
 
     BASE_URL = "https://www.athle.fr/bases/liste.aspx"
 
-    def __init__(self, data_dir: Optional[Path] = None, timeout: int = 30) -> None:
+    def __init__(
+        self,
+        data_dir: Optional[Path] = None,
+        timeout: int = 30,
+        verify_ssl: Union[bool, str, Path] = True,
+    ) -> None:
         """Initialize the athle.fr importer.
 
         Parameters
@@ -28,15 +34,39 @@ class AthleFrImporter(PerformanceImporter):
             Directory to store imported Parquet files.
         timeout : int
             Request timeout in seconds (default: 30)
+        verify_ssl : bool | str | Path
+            SSL verification mode for HTTPS requests:
+            - True: use default certificate verification
+            - False: disable verification (not recommended)
+            - str/Path: path to a custom CA bundle file
+
+            If True, ATHLE_FR_CA_BUNDLE env var is used when provided.
         """
         super().__init__(data_dir)
         self.timeout = timeout
+        self.verify_ssl = self._resolve_ssl_verification(verify_ssl)
         self.session = requests.Session()
         self.session.headers.update(
             {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
             }
         )
+
+    @staticmethod
+    def _resolve_ssl_verification(verify_ssl: Union[bool, str, Path]) -> Union[bool, str]:
+        """Resolve SSL verification setting from parameter and environment."""
+        if isinstance(verify_ssl, Path):
+            return str(verify_ssl)
+
+        if isinstance(verify_ssl, str):
+            return verify_ssl
+
+        if verify_ssl:
+            ca_bundle = os.getenv("ATHLE_FR_CA_BUNDLE")
+            if ca_bundle:
+                return ca_bundle
+
+        return verify_ssl
 
     @property
     def source_name(self) -> str:
@@ -79,10 +109,19 @@ class AthleFrImporter(PerformanceImporter):
                 self.BASE_URL,
                 params=params,
                 timeout=self.timeout,
+                verify=self.verify_ssl,
             )
             response.raise_for_status()
+        except requests.exceptions.SSLError as e:
+            raise ValueError(
+                "SSL certificate verification failed while fetching athle.fr. "
+                "If you are behind a corporate proxy, set ATHLE_FR_CA_BUNDLE to your CA bundle path "
+                "or pass verify_ssl='/path/to/ca-bundle.pem' to AthleFrImporter. "
+                "Only for trusted environments, you may use verify_ssl=False. "
+                f"Original error: {e}"
+            ) from e
         except requests.RequestException as e:
-            raise ValueError(f"Failed to fetch data from athle.fr: {e}")
+            raise ValueError(f"Failed to fetch data from athle.fr: {e}") from e
 
         # Parse HTML table
         soup = BeautifulSoup(response.content, "html.parser")

@@ -401,6 +401,32 @@ class TestAthleFrImporter:
         with pytest.raises(ValueError, match="Failed to fetch data"):
             importer.fetch_data(club_id="069106")
 
+    @patch("athletics_performance.importers.athle_fr.requests.Session.get")
+    def test_fetch_data_passes_verify_ssl_to_requests(self, mock_get: MagicMock) -> None:
+        """fetch_data forwards verify_ssl setting to requests."""
+        mock_response = MagicMock()
+        mock_response.content = b"<html><table><tr><th>Athl\xc3\xa8te</th></tr></table></html>"
+        mock_response.raise_for_status = MagicMock()
+        mock_get.return_value = mock_response
+
+        importer = AthleFrImporter(verify_ssl=False)
+        with pytest.raises(ValueError, match="Could not parse performance data"):
+            importer.fetch_data(club_id="069106")
+
+        call_args = mock_get.call_args
+        assert call_args[1]["verify"] is False
+
+    @patch("athletics_performance.importers.athle_fr.requests.Session.get")
+    def test_fetch_data_ssl_error_has_guidance(self, mock_get: MagicMock) -> None:
+        """fetch_data raises a helpful SSL-focused error message on SSLError."""
+        import requests
+
+        mock_get.side_effect = requests.exceptions.SSLError("certificate verify failed")
+
+        importer = AthleFrImporter()
+        with pytest.raises(ValueError, match="SSL certificate verification failed"):
+            importer.fetch_data(club_id="069106")
+
     def test_parse_performances_empty_dataframe(self) -> None:
         """parse_performances handles empty DataFrames gracefully."""
         importer = AthleFrImporter()

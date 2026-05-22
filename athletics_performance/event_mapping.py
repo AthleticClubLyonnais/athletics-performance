@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Optional, Dict, Tuple
 import yaml
 import pandas as pd
-from athletics_performance.events import EventRegistry
+from .events import EventRegistry
 
 
 def load_event_overrides(yaml_path: Optional[str] = None) -> Dict[str, str]:
